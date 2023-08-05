@@ -202,12 +202,12 @@ Funcs.SetVehicleMods = function(vehicle, props)
 	end
 
 	if props.engineHealth ~= nil then
-		print(props.engineHealth)
-		SetVehicleEngineHealth(vehicle, props.engineHealth)
+		-- print(props.engineHealth)
+		SetVehicleEngineHealth(vehicle, props.engineHealth + 0.0)
 	end
 
 	if props.bodyHealth ~= nil then
-		SetVehicleBodyHealth(vehicle, props.bodyHealth)
+		SetVehicleBodyHealth(vehicle, props.bodyHealth + 0.0)
 	end
 
 	if props.dirtLevel ~= nil then
