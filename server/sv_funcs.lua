@@ -20,6 +20,16 @@ Funcs.AddInventoryItem = function(id, item, count)
     end
 end
 
+Funcs.GetMoney = function(id, accountType)
+    local player = Funcs.GetPlayer(id)
+
+    if accountType == "cash" then
+        return player.getMoney()
+    elseif accountType == "bank" then
+        return player.getAccount('bank').money
+    end
+end
+
 Funcs.ShowNotification = function(id, text)
     TriggerClientEvent("esx:showNotification", id, text)
 end
@@ -37,6 +47,15 @@ Funcs.RemoveMoney = function(id, amount)
     local player = Funcs.GetPlayer(id)
     if Config.ESX then
         player.removeMoney(amount)
+    elseif Config.QBCORE then
+        player.Functions.RemoveMoney(amount)
+    end
+end
+
+Funcs.RemoveAccountMoney = function(id, amount)
+    local player = Funcs.GetPlayer(id)
+    if Config.ESX then
+        player.removeAccountMoney('bank', amount)
     elseif Config.QBCORE then
         player.Functions.RemoveMoney(amount)
     end
@@ -90,12 +109,26 @@ Funcs.FetchSQLInfo = function(typ, data)
             return Config.SQL.Columns.garage
         elseif data == "plate" then
             return Config.SQL.Columns.plate
+        elseif data == "licensesOwner" then
+            return Config.SQL.Columns.licensesOwner
+        elseif data == "jobName" then
+            return Config.SQL.Columns.jobName
+        elseif data == "jobGradesName" then
+            return Config.SQL.Columns.jobGradesName
+        elseif data == "jobGradesGrade" then
+            return Config.SQL.Columns.jobGradesGrade
         end
     elseif typ == "Tables" then
         if data == "character" then
             return Config.SQL.Tables.character
         elseif data == "vehicles" then
             return Config.SQL.Tables.vehicles
+        elseif data == "licenses" then
+            return Config.SQL.Tables.licenses
+        elseif data == "jobs" then
+            return Config.SQL.Tables.jobs
+        elseif data == "jobGrades" then
+            return Config.SQL.Tables.jobGrades
         end
     end
 end
