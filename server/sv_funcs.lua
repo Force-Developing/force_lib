@@ -23,10 +23,18 @@ end
 Funcs.GetMoney = function(id, accountType)
     local player = Funcs.GetPlayer(id)
 
-    if accountType == "cash" then
-        return player.getMoney()
-    elseif accountType == "bank" then
-        return player.getAccount('bank').money
+    if Config.ESX then
+        if accountType == "cash" then
+            return player.getMoney()
+        elseif accountType == "bank" then
+            return player.getAccount('bank').money
+        end
+    elseif Config.QBCORE then
+        if accountType == "cash" then
+            return player.PlayerData.money["cash"]
+        elseif accountType == "bank" then
+            return player.PlayerData.money["bank"]
+        end
     end
 end
 
