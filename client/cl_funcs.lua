@@ -1,6 +1,6 @@
 Funcs = {}
 
-Funcs.DrawMissionText = function(text, length, height, scale)
+Funcs.DrawMissionText = function(text, length, height, scale, spriteWidth, spriteHeight)
     SetTextScale(scale, scale)
     SetTextFont(4)
     SetTextProportional(1)
@@ -10,9 +10,10 @@ Funcs.DrawMissionText = function(text, length, height, scale)
     SetTextOutline()
     AddTextComponentString(text)
     DrawText(height, length)
+	-- DrawSprite("CommonMenu", "last_team_standing_icon", height, length + 0.015, spriteWidth, spriteHeight, 0.0, 40, 41, 41, 230)
 end
 
-Funcs.BlipDetails = function(blipName, color, blipText, route)
+Funcs.BlipDetails = function(blipName, blipText, color, route)
     BeginTextCommandSetBlipName("STRING")
     SetBlipColour(blipName, color)
     AddTextComponentString(blipText)
@@ -202,12 +203,12 @@ Funcs.SetVehicleMods = function(vehicle, props)
 	end
 
 	if props.engineHealth ~= nil then
-		-- print(props.engineHealth)
+		print(props.engineHealth + 0.0)
 		SetVehicleEngineHealth(vehicle, props.engineHealth + 0.0)
 	end
 
 	if props.bodyHealth ~= nil then
-		SetVehicleBodyHealth(vehicle, props.bodyHealth + 0.0)
+		SetVehicleBodyHealth(vehicle, props.bodyHealth)
 	end
 
 	if props.dirtLevel ~= nil then
@@ -465,7 +466,7 @@ Funcs.GetVehicleProperties = function(vehicle)
 
 		model             = GetEntityModel(vehicle),
 
-		plate             = ESX.Math.Trim(GetVehicleNumberPlateText(vehicle)),
+		plate             = Funcs.MathTrim(GetVehicleNumberPlateText(vehicle)),
 		plateIndex        = GetVehicleNumberPlateTextIndex(vehicle),
 
 		health            = GetEntityHealth(vehicle),
@@ -551,6 +552,41 @@ end
 
 Funcs.DrawMarker = function(markerData)
     DrawMarker(markerData['type'] or 1, markerData['pos'] or vector3(0.0, 0.0, 0.0), 0.0, 0.0, 0.0, (markerData['type'] == 6 and -90.0 or markerData['rotate'] and -180.0) or 0.0, 0.0, 0.0, markerData['sizeX'] or 1.0, markerData['sizeY'] or 1.0, markerData['sizeZ'] or 1.0, markerData['r'] or 1.0, markerData['g'] or 1.0, markerData['b'] or 1.0, 100, markerData['bob'] and true or false, false, 2, false, false, false, false)
+end
+
+Funcs.MenuOpen = function(menuName, title, align, elements, cb)
+	ESX.UI.Menu.Open('default', GetCurrentResourceName(), menuName,
+    {
+        title = title,
+        align = align,
+        elements = elements
+    },
+
+    function(data, menu)
+        cb(data, menu)
+    end,
+    function(data, menu)
+        menu.close()
+    end)
+end
+
+Funcs.MathRound = function(value, numDecimalPlaces)
+	return tonumber(string.format("%." .. (numDecimalPlaces or 0) .. "f", value))
+end
+
+-- credit http://richard.warburton.it
+Funcs.GroupDigits = function(value)
+	local left,num,right = string.match(value,'^([^%d]*%d)(%d*)(.-)$')
+
+	return left..(num:reverse():gsub('(%d%d%d)','%1' .. _U('locale_digit_grouping_symbol')):reverse())..right
+end
+
+Funcs.MathTrim = function(value)
+	if value then
+		return (string.gsub(value, "^%s*(.-)%s*$", "%1"))
+	else
+		return nil
+	end
 end
 
 function Fetch()
