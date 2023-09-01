@@ -23,18 +23,10 @@ end
 Funcs.GetMoney = function(id, accountType)
     local player = Funcs.GetPlayer(id)
 
-    if Config.ESX then
-        if accountType == "cash" then
-            return player.getMoney()
-        elseif accountType == "bank" then
-            return player.getAccount('bank').money
-        end
-    elseif Config.QBCORE then
-        if accountType == "cash" then
-            return player.PlayerData.money["cash"]
-        elseif accountType == "bank" then
-            return player.PlayerData.money["bank"]
-        end
+    if accountType == "cash" then
+        return player.getMoney()
+    elseif accountType == "bank" then
+        return player.getAccount('bank').money
     end
 end
 
@@ -139,6 +131,31 @@ Funcs.FetchSQLInfo = function(typ, data)
             return Config.SQL.Tables.jobGrades
         end
     end
+end
+
+Funcs.GetPlayers = function()
+    if Config.ESX then
+        return ESX.GetPlayers()
+    elseif Config.QBCORE then
+        return QBCore.Functions.GetPlayers()
+    end
+end
+
+Funcs.GetPlayerJobName = function(id, job)
+    local player = Funcs.GetPlayer(id)
+    local isJob = false
+
+    if Config.ESX then
+        if player.job.name == job then
+            isJob = true
+        end
+    elseif Config.QBCORE then
+        if player.PlayerData.job.name == job then
+            isJob = true
+        end
+    end
+
+    return isJob
 end
 
 function Fetch()
