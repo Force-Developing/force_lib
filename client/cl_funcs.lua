@@ -134,6 +134,23 @@ Funcs.SpawnVehicle = function(modelName, coords, heading, cb)
 	end)
 end
 
+Funcs.TeleportEntity = function(entity, coords)
+	DoScreenFadeOut(100)
+
+	RequestCollisionAtCoord(coords.x, coords.y, coords.z)
+
+	while not HasCollisionLoadedAroundEntity(entity) do
+	RequestCollisionAtCoord(coords.x, coords.x, coords.x)
+		Citizen.Wait(0)
+	end
+
+	Citizen.Wait(1000)
+
+	SetEntityCoords(entity,  coords.x,  coords.y,  coords.z)
+
+	DoScreenFadeIn(100)
+end
+
 Funcs.IsSpawnPointClear = function(coords, radius)
     local vehicles = Funcs.GetVehiclesInArea(coords, radius)
 
@@ -587,6 +604,23 @@ Funcs.MathTrim = function(value)
 	else
 		return nil
 	end
+end
+
+Funcs.MakeEntityFaceEntity = function(entity01, entity02)
+	local p1 = GetEntityCoords(entity01, true)
+	local p2 = GetEntityCoords(entity02, true)
+
+	local dx = p2.x - p1.x
+	local dy = p2.y - p1.y
+
+	local heading = GetHeadingFromVector_2d(dx, dy)
+	SetEntityHeading(entity01, heading)
+end
+
+Funcs.SetEntityCoordsInfrontOfEntity = function(entity01, entity02)
+	local pedCoords = GetEntityCoords(entity02)
+	local front = GetEntityForwardVector(entity02)
+	SetEntityCoords(entity01, pedCoords.x + front.x, pedCoords.y + front.y, pedCoords.z - 0.985, false)
 end
 
 function Fetch()
