@@ -52,13 +52,30 @@ Funcs.DebugPrint = function(text)
 end
 
 Funcs.StartProgressbar = function(time, text)
-    exports["bgrp_progressbar"]:StartProgress(time, text, function() end)
+	if (Config.ESX) then
+		exports["bgrp_progressbar"]:StartProgress(time, text, function() end)
+	elseif Config.QBCORE then
+		QBCore.Functions.Progressbar("random_task", time, text, false, true, {
+			disableMovement = false,
+			disableCarMovement = false,
+			disableMouse = false,
+			disableCombat = true,
+		}, {
+			animDict = "",
+			anim = "",
+			flags = 0,
+		}, {}, {}, function()
+		end, function()
+		end)
+	end
 end
 
 Funcs.ShowNotification = function(text)
     if (Config.ESX) then
         ESX.ShowNotification(text)
-    end
+	elseif Config.QBCORE then
+		TriggerEvent("QBCore:Notify", text)
+	end
 end
 
 Funcs.ShowHelpNotification = function(text)

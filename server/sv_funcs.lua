@@ -23,15 +23,27 @@ end
 Funcs.GetMoney = function(id, accountType)
     local player = Funcs.GetPlayer(id)
 
-    if accountType == "cash" then
-        return player.getMoney()
-    elseif accountType == "bank" then
-        return player.getAccount('bank').money
+    if Config.ESX then
+        if accountType == "cash" then
+            return player.getMoney()
+        elseif accountType == "bank" then
+            return player.getAccount('bank').money
+        end
+    elseif Config.QBCORE then
+        if accountType == "cash" then
+            return player.Functions.GetMoney["cash"]
+        elseif accountType == "bank" then
+            return player.Functions.GetMoney["bank"]
+        end
     end
 end
 
 Funcs.ShowNotification = function(id, text)
-    TriggerClientEvent("esx:showNotification", id, text)
+    if Config.ESX then
+        TriggerClientEvent("esx:showNotification", id, text)
+    elseif Config.QBCORE then
+        TriggerClientEvent('QBCore:Notify', id, text)
+    end
 end
 
 Funcs.GiveMoney = function(id, amount)
@@ -39,7 +51,7 @@ Funcs.GiveMoney = function(id, amount)
     if Config.ESX then
         player.addMoney(amount)
     elseif Config.QBCORE then
-        player.AddMoney("cash", amount)
+        player.Functions.AddMoney("cash", amount)
     end
 end
 
@@ -58,6 +70,15 @@ Funcs.RemoveAccountMoney = function(id, amount)
         player.removeAccountMoney('bank', amount)
     elseif Config.QBCORE then
         player.Functions.RemoveMoney(amount)
+    end
+end
+
+Funcs.GiveBlackmoney = function(id, amount)
+    local player = Funcs.GetPlayer(id)
+    if Config.ESX then
+        player.addAccountMoney('black_money', amount)
+    elseif Config.QBCORE then
+        player.Functions.AddMoney("black_money", amount)
     end
 end
 
@@ -156,6 +177,24 @@ Funcs.GetPlayerJobName = function(id, job)
     end
 
     return isJob
+end
+
+Funcs.GetPlayerJob = function(id)
+    local player = Funcs.GetPlayer(id)
+    if Config.ESX then
+        return player.job
+    elseif Config.QBCORE then
+        return player.PlayerData.job
+    end
+end
+
+Funcs.SetJob = function(id, job, grade)
+    local player = Funcs.GetPlayer(id)
+    if Config.ESX then
+        return player.setJob(job, grade)
+    elseif Config.QBCORE then
+        return player.Functions.SetJob(job, grade)
+    end
 end
 
 function Fetch()
