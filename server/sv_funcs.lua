@@ -100,6 +100,16 @@ Funcs.GetIdentifier = function(id)
     end
 end
 
+Funcs.GetPlayerName = function(id)
+    local player = Funcs.GetPlayer(id)
+
+    if Config.ESX then
+        return player.character.firstname .. " " .. player.character.lastname
+    elseif Config.QBCORE then
+        return player.PlayerData.charinfo.firstname .. " " .. player.PlayerData.charinfo.lastname
+    end
+end
+
 Funcs.DebugPrint = function(text)
     if Config.Debug then
         print("^4" .. GetCurrentResourceName() .. "," .. " ^2Debug: ^3" .. text)
