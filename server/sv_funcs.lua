@@ -128,6 +128,14 @@ Funcs.CreateCallback = function(name, passed)
     end)
 end
 
+Funcs.GetFramework = function()
+	if Config.QBCORE then
+		return "QBCORE"
+	elseif Config.ESX then
+		return "ESX"
+	end
+end
+
 Funcs.FetchSQLInfo = function(typ, data)
     if typ == "Columns" then
         if data == "identifier" then
