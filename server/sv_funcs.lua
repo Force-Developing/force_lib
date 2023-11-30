@@ -8,12 +8,16 @@ Funcs.GetPlayer = function(id)
     end
 end
 
-Funcs.AddInventoryItem = function(id, item, count)
+Funcs.AddInventoryItem = function(id, item, count, data)
+    if data == nil then
+        data = {}
+    end
     local player = Funcs.GetPlayer(id)
     if Config.ESX then
         player.addInventoryItem({
             item = item,
-            count = count
+            count = count,
+            data = data
         })
     elseif Config.QBCORE then
         player.Functions.AddItem(item, count)
@@ -31,9 +35,9 @@ Funcs.GetMoney = function(id, accountType)
         end
     elseif Config.QBCORE then
         if accountType == "cash" then
-            return player.Functions.GetMoney["cash"]
+            return player.Functions.GetMoney('cash')
         elseif accountType == "bank" then
-            return player.Functions.GetMoney["bank"]
+            return player.Functions.GetMoney('bank')
         end
     end
 end
@@ -58,9 +62,9 @@ end
 Funcs.RemoveMoney = function(id, amount)
     local player = Funcs.GetPlayer(id)
     if Config.ESX then
-        player.removeMoney(amount)
+        player.removeMoney(tonumber(amount))
     elseif Config.QBCORE then
-        player.Functions.RemoveMoney(amount)
+        player.Functions.RemoveMoney("cash", amount, "Cash withdrawl")
     end
 end
 
@@ -94,11 +98,33 @@ end
 Funcs.GetIdentifier = function(id)
     local player = Funcs.GetPlayer(id)
     if Config.ESX then
-        return player.getIdentifier()
+        return player.socialnumber
     elseif Config.QBCORE then
         return player.PlayerData.citizenid
     end
 end
+
+Funcs.GetInventoryItem = function(id, item)
+    local player = Funcs.GetPlayer(id)
+    if Config.ESX then
+        return player.getInventoryItem(item).count
+    elseif Config.QBCORE then
+        if player.Functions.GetItemByName(item) ~= nil then
+            return player.Functions.GetItemByName(item).amount
+        else
+            return 0
+        end
+    end
+end
+
+-- Funcs.GetPlayerInventory = function(id)
+--     local player = Funcs.GetPlayer(id)
+--     if Config.ESX then
+--         return player.inventory
+--     elseif Config.QBCORE then
+--         return QBCore.Player.LoadInventory()
+--     end
+-- end
 
 Funcs.GetPlayerName = function(id)
     local player = Funcs.GetPlayer(id)
@@ -126,14 +152,6 @@ Funcs.CreateCallback = function(name, passed)
             ESX.RegisterServerCallback(name, passed)
         end
     end)
-end
-
-Funcs.GetFramework = function()
-	if Config.QBCORE then
-		return "QBCORE"
-	elseif Config.ESX then
-		return "ESX"
-	end
 end
 
 Funcs.FetchSQLInfo = function(typ, data)
@@ -180,6 +198,26 @@ Funcs.GetPlayers = function()
     end
 end
 
+Funcs.GetPlayerJobInfo = function(id)
+    local player = Funcs.GetPlayer(id)
+
+    if Config.ESX then
+        local job = {
+            job = player.job.name,
+            grade = player.job.grade,
+            label = player.job.label
+        }
+        return job
+    elseif Config.QBCORE then
+        local job = {
+            job = player.PlayerData.job.name,
+            grade = player.PlayerData.job.grade,
+            label = player.PlayerData.job.label
+        }
+        return job
+    end
+end
+
 Funcs.GetPlayerJobName = function(id, job)
     local player = Funcs.GetPlayer(id)
     local isJob = false
@@ -213,6 +251,65 @@ Funcs.SetJob = function(id, job, grade)
     elseif Config.QBCORE then
         return player.Functions.SetJob(job, grade)
     end
+end
+
+Funcs.SendDiscordLog = function(webHook, header, message, target)
+    local embeds = {
+        {
+            type = "rich",
+			color = Config.Logs.LogsColor,
+			title = header,
+			author = {
+				["name"] = 'Force Developments - ' .. GetInvokingResource(),
+				['icon_url'] = 'https://cdn.discordapp.com/attachments/1083112303236485120/1176799520525385778/New_Project.png?ex=65702ef5&is=655db9f5&hm=2597de5b58d90a9851a115e90a598041028133fe32addbaa5405fac11d5b2206&'
+			},
+			description = message .. "\n " .. Funcs.GetPlayerDetails(target or source),
+			footer = {
+				icon_url = 'https://cdn.discordapp.com/attachments/1083112303236485120/1176799776965152831/Force_dev_logotyp.png?ex=65702f32&is=655dba32&hm=1286c75fe4cb7d38d409c42d79cdca030e41f202e0291fc9a728fecb7228c800&',
+				text = os.date("%d") .. "/" .. os.date("%m") .. "/" .. os.date("%Y") .. " - " .. os.date("%H") .. ":" .. os.date("%M")
+			}
+        }
+	}
+
+	PerformHttpRequest(webHook, function(err, text, headers) end, "POST", json.encode({username = "force_report", embeds = embeds}), { ["Content-Type"] = "application/json" })
+end
+
+Funcs.GetPlayerDetails = function(src)
+	local player_id = src
+	local ids = Funcs.ExtractIdentifiers(player_id)
+	if Config.Logs.discordID then if ids.discord ~= "" then _discordID ="\n**Discord ID:** <@" ..ids.discord:gsub("discord:", "")..">" else _discordID = "\n**Discord ID:** N/A" end else _discordID = "" end
+	if Config.Logs.steamID then if ids.steam ~= "" then _steamID ="\n**Steam ID:** " ..ids.steam.."" else _steamID = "\n**Steam ID:** N/A" end else _steamID = "" end
+	if Config.Logs.steamURL then  if ids.steam ~= "" then _steamURL ="\nhttps://steamcommunity.com/profiles/" ..tonumber(ids.steam:gsub("steam:", ""),16).."" else _steamURL = "\n**Steam URL:** N/A" end else _steamURL = "" end
+	if Config.Logs.IP then if ids.ip ~= "" then _ip ="\n**IP:** " ..ids.ip else _ip = "\n**IP :** N/A" end else _ip = "" end
+	return _discordID..''.._steamID..''.._steamURL..''.._ip
+end
+
+Funcs.ExtractIdentifiers = function(src)
+    local identifiers = {
+        steam = "",
+        ip = "",
+        discord = "",
+        xbl = "",
+        live = ""
+    }
+
+    for i = 0, GetNumPlayerIdentifiers(src) - 1 do
+        local id = GetPlayerIdentifier(src, i)
+
+        if string.find(id, "steam") then
+            identifiers.steam = id
+        elseif string.find(id, "ip") then
+            identifiers.ip = id
+        elseif string.find(id, "discord") then
+            identifiers.discord = id
+        elseif string.find(id, "xbl") then
+            identifiers.xbl = id
+        elseif string.find(id, "live") then
+            identifiers.live = id
+        end
+    end
+
+    return identifiers
 end
 
 function Fetch()

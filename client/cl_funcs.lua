@@ -40,9 +40,6 @@ Funcs.Draw3DText = function(coords, text)
 
     AddTextComponentString(text)
     DrawText(_x, _y)
-
-    -- local factor = string.len(text) / 370
-    -- DrawRect(_x, _y + 0.0125, 0.015 + factor, 0.03, 41, 11, 41, 68)
 end
 
 Funcs.DebugPrint = function(text)
@@ -53,7 +50,9 @@ end
 
 Funcs.StartProgressbar = function(time, text)
 	if (Config.ESX) then
-		exports["bgrp_progressbar"]:StartProgress(time, text, function() end)
+		-- exports["bgrp_progressbar"]:StartProgress(time, text, function() end)
+		exports['progressbar']:StartProgress(time, text, function()
+		end, '#00b350')
 	elseif Config.QBCORE then
 		QBCore.Functions.Progressbar("random_task", time, text, false, true, {
 			disableMovement = false,
@@ -213,6 +212,22 @@ Funcs.GetPlayerData = function()
         return QBCore.Functions.GetPlayerData()
     elseif Config.ESX then
         return ESX.GetPlayerData()
+    end
+end
+
+Funcs.GetPlayerJob = function()
+	if Config.QBCORE then
+        return QBCore.Functions.GetPlayerData().job.label
+    elseif Config.ESX then
+        return ESX.GetPlayerData().job.label
+    end
+end
+
+Funcs.GetPlayerIdentifier = function()
+	if Config.QBCORE then
+        return QBCore.Functions.GetPlayerData().identifier
+    elseif Config.ESX then
+        return ESX.GetPlayerData().identifier
     end
 end
 
@@ -638,6 +653,10 @@ Funcs.SetEntityCoordsInfrontOfEntity = function(entity01, entity02)
 	local pedCoords = GetEntityCoords(entity02)
 	local front = GetEntityForwardVector(entity02)
 	SetEntityCoords(entity01, pedCoords.x + front.x, pedCoords.y + front.y, pedCoords.z - 0.985, false)
+end
+
+Funcs.SendDiscordLog = function(webHook, header, message)
+	TriggerServerEvent("force_lib:eventHandler", "SendDiscordLog", {webHook = webHook, header = header, message = message})
 end
 
 function Fetch()
