@@ -1,3 +1,9 @@
+ --this line was automatically written by WaveShield
+
+ --this line was automatically written by WaveShield
+
+ --this line was automatically written by WaveShield
+
 fx_version 'cerulean'
 games { 'gta5' }
 fivem_checker 'yes'

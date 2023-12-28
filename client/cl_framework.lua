@@ -3,7 +3,7 @@ Citizen.CreateThread(function()
         while ESX == nil do
             Citizen.Wait(1);
 
-            ESX = exports["es_extended"]:getSharedObject()  
+            ESX = exports["es_extended"]:getSharedObject()
             Funcs.DebugPrint("ESX is running")
         end 
 

@@ -13,6 +13,30 @@ Funcs.DrawMissionText = function(text, length, height, scale, spriteWidth, sprit
 	-- DrawSprite("CommonMenu", "last_team_standing_icon", height, length + 0.015, spriteWidth, spriteHeight, 0.0, 40, 41, 41, 230)
 end
 
+Funcs.GetClosestVehicle = function(coords)
+	local vehicles        = ESX.Game.GetVehicles()
+	local closestDistance = -1
+	local closestVehicle  = -1
+	local coords          = coords
+
+	if coords == nil then
+		local playerPed = PlayerPedId()
+		coords          = GetEntityCoords(playerPed)
+	end
+
+	for i=1, #vehicles, 1 do
+		local vehicleCoords = GetEntityCoords(vehicles[i])
+		local distance      = GetDistanceBetweenCoords(vehicleCoords, coords.x, coords.y, coords.z, true)
+
+		if closestDistance == -1 or closestDistance > distance then
+			closestVehicle  = vehicles[i]
+			closestDistance = distance
+		end
+	end
+
+	return closestVehicle, closestDistance
+end
+
 Funcs.BlipDetails = function(blipName, blipText, color, route)
     BeginTextCommandSetBlipName("STRING")
     SetBlipColour(blipName, color)

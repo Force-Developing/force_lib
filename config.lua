@@ -3,8 +3,8 @@ Config = {
     Debug = true,
 
     --Framework to use
-    ESX = false,
-    QBCORE = true,
+    ESX = true,
+    QBCORE = false,
 
     SQL = {
         Tables = {
