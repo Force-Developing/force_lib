@@ -312,6 +312,14 @@ Funcs.ExtractIdentifiers = function(src)
     return identifiers
 end
 
+Funcs.GetFramework = function()
+	if Config.QBCORE then
+		return "QBCORE"
+	elseif Config.ESX then
+		return "ESX"
+	end
+end
+
 function Fetch()
     return Funcs
 end
