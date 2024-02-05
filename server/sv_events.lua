@@ -1,8 +1,9 @@
 RegisterServerEvent("force_lib:eventHandler")
-AddEventHandler("force_lib:eventHandler", function(func, data)
-    if func == "SendDiscordLog" then
+AddEventHandler("force_lib:eventHandler", function(event, data)
+    if not (event or data) then return end -- If no event or data is passed, return
+    if event == "SendDiscordLog" then
         Funcs.SendDiscordLog(data.webHook, data.header, data.message)
-    elseif func == "" then
+    elseif event == "" then
 
     end
 end)
