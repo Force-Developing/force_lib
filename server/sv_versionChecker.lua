@@ -1,122 +1,40 @@
-ScriptList = {}
-Changelogs = 0
+AddEventHandler('onResourceStart', function(resourceName)
+    if (GetCurrentResourceName() ~= resourceName) then
+        return
+    end
 
-Citizen.CreateThread(function()
-    
-    local Resources = GetNumResources()
+    if GetCurrentResourceName() ~= "force_lib" then
+        return print("Please rename the resource to force_lib")
+    end
 
-	for i=0, Resources, 1 do
-		local resource = GetResourceByFindIndex(i)
-		UpdateChecker(resource)
-	end
+    local url = GetResourceMetadata(resourceName, "versioncheck", 0)
+    local version = GetResourceMetadata(resourceName, "version", 0)
 
-    Citizen.Wait(4000)
+    local lastestVersionStr = "^0[ ^4"..resourceName.." ^0is running on the latest version ^2(v"..version..")! ^0]"
 
-    if next(ScriptList) ~= nil then
-        Checker()
+    local divider = ""
+
+    for i = 1, string.len(lastestVersionStr) do
+        divider = divider.."-"
     end
     
-end)
-
-function UpdateChecker(resource)
-	if resource and GetResourceState(resource) == 'started' then
-		if GetResourceMetadata(resource, 'fivem_checker', 0) == 'yes' then
-
-			local Name = GetResourceMetadata(resource, 'name', 0)
-			local Github = GetResourceMetadata(resource, 'github', 0)
-			local Version = GetResourceMetadata(resource, 'version', 0)
-            local Changelog, GithubL, NewestVersion
-            
-            Script = {}
-            
-            Script['Resource'] = resource
-            if Version == nil then
-                Version = GetResourceMetadata(resource, 'version', 0)
-            end
-            if Name ~= nil then
-                Script['Name'] = Name
+    PerformHttpRequest(url, function(err, text, headers)
+        --
+        print("^0[ ^3Performing Update Check ^0: "..resourceName.." ] ")
+        if (text ~= nil) then
+            if tonumber(version) >= tonumber(text) then
+                print(divider)
+                print(lastestVersionStr)
+                print(divider)
             else
-                resource = resource:upper()
-                Script['Name'] = '^6'..resource
+                print("\n")
+                print("New version of "..resourceName.." found, please update as soon as possible! If you're running anything below 2.0 reasources from 2024+ won't work!")
+                print("[ Old : v"..version.." ] ")
+                print("[ New : v"..text.." ] ")        
+                print("\n")
             end
-            if string.find(Github, "github") then
-                if string.find(Github, "github.com") then
-                    Script['Github'] = Github
-                    Github = string.gsub(Github, "github", "raw.githubusercontent")..'/master/version'
-                else
-                    GithubL = string.gsub(Github, "raw.githubusercontent", "github"):gsub("/master", "")
-                    Github = Github..'/version'
-                    Script['Github'] = GithubL
-                end
-            else
-                Script['Github'] = Github..'/version'
-            end
-            PerformHttpRequest(Github, function(Error, V, Header)
-                NewestVersion = V
-            end)
-            repeat
-                Citizen.Wait(10)
-            until NewestVersion ~= nil
-            local _, strings = string.gsub(NewestVersion, "\n", "\n")
-            Version1 = NewestVersion:match("[^\n]*"):gsub("[<>]", "")
-            if string.find(Version1, Version) then
-            else
-                if strings > 0 then
-                    Changelog = NewestVersion:gsub(Version1,""):match("%<.*" .. Version .. ">"):gsub(Version,"")
-                    Changelog = string.gsub(Changelog, "\n", "")
-                    Changelog = string.gsub(Changelog, "-", " \n-"):gsub("%b<>", ""):sub(1, -2)
-                    NewestVersion = Version1
-                end
-            end
-            if Changelog ~= nil then
-                Script['CL'] = true
-            end
-            Script['NewestVersion'] = Version1
-            Script['Version'] = Version
-            Script['Changelog'] = Changelog
-            table.insert(ScriptList, Script)
-		end
-	end
-end
-
-
-function Checker()
-
-    print('^0--------------------------------------------------------------------')
-    print("^3force_lib Version Checker - Automatic update checker")
-    print('')
-    for i, v in pairs(ScriptList) do
-        if string.find(v.NewestVersion, v.Version) then
-            print('^4 force_lib^2✓ ' .. 'Up to date - Version ' .. v.Version..'^0')
         else
-            print('^4 Update on the github! ^1✗ ' .. 'Outdated (v'..v.Version..') ^5- Update found: Version ' .. v.NewestVersion..' ^0('..v.Github..')')
+            print("Unable to find version.txt on "..url..", please check if you're internet connection is working properly and stable!")
         end
-        
-        if v.CL then
-            Changelogs = Changelogs + 1
-        end
-    end
-
-    if Changelogs > 0 then
-        print('^0----------------------------------')
-        Changelog()
-    else
-        print('^0--------------------------------------------------------------------')
-    end
-end
-
-function Changelog()
-
-    print('')
-    for i, v in pairs(ScriptList) do
-        if v.Version ~= v.NewestVersion then
-            if v.CL then
-                print('^3'..v.Resource:upper()..' - Changelog:')
-                print('^4'..v.Changelog)
-                print('')
-            end
-        end
-    end
-    print('^0--------------------------------------------------------------------')
-
-end
+    end, "GET", "", {})
+end)
