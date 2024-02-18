@@ -27,6 +27,7 @@ client_scripts {
     'client/modules/cl_math.lua',
     'client/modules/cl_entitier.lua',
     'client/modules/cl_keys.lua',
+    'client/modules/cl_events.lua',
 
     -- [[ ADMIN MANAGER ]]
     'client/admin/cl_adminmanager.lua',

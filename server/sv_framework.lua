@@ -39,6 +39,7 @@ local frameworkName = nil
                         vehicleinfo = "vehicle",
                     }
                 }
+
             elseif GetResourceState('qb-core') == 'started' then
                 framework = exports['qb-core']:GetCoreObject()
                 if not frameworkName then frameworkName = "QBCore" end

@@ -1,13 +1,14 @@
 lib.Funcs = {}
 
 function lib.Funcs:Init()
-    function lib.Funcs:DrawMissionText(text, length, height, scale, spriteWidth, spriteHeight)
+    function lib.Funcs:DrawMissionText(text, length, height, scale, center)
+        if not center then center = true end
         SetTextScale(scale, scale)
         SetTextFont(4)
         SetTextProportional(true)
         SetTextEdge(2, 0, 0, 0, 150)
         SetTextEntry("STRING")
-        SetTextCentre(true)
+        SetTextCentre(center)
         SetTextOutline()
         AddTextComponentString(text)
         DrawText(height, length)
@@ -246,7 +247,8 @@ function lib.Funcs:Init()
         end)
     end
 
-    function lib.Funcs:TeleportEntity(entity, coords)
+    function lib.Funcs:TeleportEntity(entity, coords, cooldown)
+        if not cooldown then cooldown = 100 end
         DoScreenFadeOut(100)
     
         RequestCollisionAtCoord(coords.x, coords.y, coords.z)
@@ -254,8 +256,9 @@ function lib.Funcs:Init()
         RequestCollisionAtCoord(coords.x, coords.x, coords.x)
             Citizen.Wait(0)
         end
-        Citizen.Wait(1000)
-    
+
+        Citizen.Wait(cooldown)
+
         SetEntityCoords(entity,  coords.x,  coords.y,  coords.z, true, false, false, true)
         if coords.w then
             SetEntityHeading(entity, coords.w)
@@ -803,7 +806,19 @@ function lib.Funcs:Init()
                 exports['progressbar']:StartProgress(text, time, nil, '#00b350')
             end
         elseif lib.FrameworkName == 'QBCore' then
-            exports['qb-core']:Progressbar(time, text)
+            -- exports['qb-core']:Progressbar(time, text)
+            lib.Framework.Functions.Progressbar("force_lib_task", text, time, false, true, {
+                disableMovement = false,
+                disableCarMovement = false,
+                disableMouse = false,
+                disableCombat = false,
+            }, {
+                animDict = false,
+                anim = false,
+                flags = false,
+            }, {}, {}, function()
+            end, function()
+            end)
         else
             -- Custom progressbar function
             local player = PlayerPedId()
@@ -816,6 +831,16 @@ function lib.Funcs:Init()
                 end
             end)
         end
+    end
+
+    function lib.Funcs:StringToVector3(str)
+        local x, y, z = str:match("vec3%(([^,]+),([^,]+),([^)]+)%)")
+        return vector3(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
+    end
+
+    function lib.Funcs:StringToVector4(str)
+        local x, y, z, w = str:match("vec4%(([^,]+),([^,]+),([^,]+),([^)]+)%)")
+        return vector4(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0, tonumber(w) or 0)
     end
 
     function lib.Funcs:TableContains(table, value)

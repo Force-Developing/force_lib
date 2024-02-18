@@ -15,7 +15,7 @@ function lib.FrameworkBased:Init()
         local player = lib.FrameworkBased:GetPlayer(id)
 
         if lib.FrameworkName == 'ESX' then
-            return player.identifier
+            return player.socialnumber or player.identifier
         elseif lib.FrameworkName == 'QBCore' then
             return player.PlayerData.citizenid
         else
@@ -346,18 +346,29 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:HandleCompanyAccounts(company, func)
         if lib.FrameworkName == 'ESX' then
+            local cAccount = {};
             TriggerEvent('esx_addonaccount:getSharedAccount', 'society_' .. company, function(account)
-                if not account then return false end;
+                cAccount = account
+            end)
+            if not cAccount then cAccount = nil end;
+            print(cAccount)
                 
                 if func.name == 'add' then
-                    account.addMoney(tonumber(func.amount))
+                    if cAccount then
+                        cAccount.addMoney(tonumber(func.amount))
+                    end
                 elseif func.name == 'remove' then
-                    account.removeMoney(tonumber(func.amount))
+                    if cAccount then
+                        cAccount.removeMoney(tonumber(func.amount))
+                    end
                 elseif func.name == 'get' then
-                    return tonumber(account.money)
+                    if cAccount then
+                        return tonumber(cAccount.money)
+                    else
+                        return 0 -- or any default value you want to return when cAccount is nil
+                    end
                 end
-                return true
-            end)
+                return cAccount
         elseif lib.FrameworkName == 'QBCore' then
             if func.name == 'add' then
                 exports['qb-management']:AddMoney(company, tonumber(func.amount))
