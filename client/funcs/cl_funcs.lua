@@ -15,7 +15,7 @@ function lib.Funcs:Init()
     end
 
     function lib.Funcs:GetClosestVehicle(coords)
-        local vehicles        = self.Funcs:GetVehicles()
+        local vehicles        = lib.Funcs:GetVehicles()
         local closestDistance = -1
         local closestVehicle  = -1
         local coords          = coords
@@ -278,7 +278,7 @@ function lib.Funcs:Init()
     end
 
     function lib.Funcs:GetVehiclesInArea(coords, area)
-        local vehicles       = self.Funcs:GetVehicles()
+        local vehicles       = lib.Funcs:GetVehicles()
         local vehiclesInArea = {}
     
         for i=1, #vehicles, 1 do
@@ -294,7 +294,7 @@ function lib.Funcs:Init()
     end
 
     function lib.Funcs:IsSpawnPointClear(coords, radius)
-        local vehicles = self.Funcs:GetVehiclesInArea(coords, radius)
+        local vehicles = lib.Funcs:GetVehiclesInArea(coords, radius)
     
         return #vehicles == 0
     end
