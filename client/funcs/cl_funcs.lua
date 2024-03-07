@@ -806,19 +806,7 @@ function lib.Funcs:Init()
                 exports['progressbar']:StartProgress(text, time, nil, '#00b350')
             end
         elseif lib.FrameworkName == 'QBCore' then
-            -- exports['qb-core']:Progressbar(time, text)
-            lib.Framework.Functions.Progressbar("force_lib_task", text, time, false, true, {
-                disableMovement = false,
-                disableCarMovement = false,
-                disableMouse = false,
-                disableCombat = false,
-            }, {
-                animDict = false,
-                anim = false,
-                flags = false,
-            }, {}, {}, function()
-            end, function()
-            end)
+            exports['qb-core']:Progressbar(time, text)
         else
             -- Custom progressbar function
             local player = PlayerPedId()
@@ -850,5 +838,36 @@ function lib.Funcs:Init()
             end
         end
         return false
+    end
+
+    function lib.Funcs:CreateClientCallback(name, cb)
+        if name == nil then return lib.Funcs.DebugPrint('var: name in lib.Funcs.CreateClientCallback is nil') end
+        if cb == nil then return lib.Funcs.DebugPrint('var: cb in lib.Funcs.CreateClientCallback is nil') end
+    
+        lib.ClientCallbacks[name] = cb
+    end
+    
+    function lib.Funcs:TriggerClientCallback(name, cb, ...)
+        if name == nil then return lib.Funcs.DebugPrint('var: name in lib.Funcs.TriggerClientCallback is nil') end
+        if cb == nil then return lib.Funcs.DebugPrint('var: cb in lib.Funcs.TriggerClientCallback is nil') end
+    
+        if not lib.ClientCallbacks[name] then return end
+        lib.ClientCallbacks[name](cb, ...)
+    end
+
+    function lib.Funcs:Menu(data)
+        if GetResourceState('qb-menu') == 'started' then
+            exports["qb-menu"]:openMenu(data)
+        else
+            -- Custom Menu Function
+        end
+    end
+
+    function lib.Funcs:Input(data)
+        if GetResourceState('qb-input') == 'started' then
+            exports["qb-input"]:ShowInput(data)
+        else
+            -- Custom Input Function
+        end
     end
 end

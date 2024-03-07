@@ -97,6 +97,19 @@ function lib.FrameworkBased:Init()
             elseif accountType == "black_money" then
                 return player.getAccount('black_money').money
             end
+
+            if accountType == 'all' then
+                return {
+                    {
+                        name = "cash",
+                        money = player.getMoney()
+                    },
+                    {
+                        name = "bank",
+                        money = (player.getAccount('bank')) and player.getAccount('bank').money or exports.bank:getMainAccountMoney(player.socialnumber)
+                    },
+                }
+            end
         elseif lib.FrameworkName == 'QBCore' then
             if accountType == "cash" then
                 return player.Functions.GetMoney('cash')
@@ -104,6 +117,19 @@ function lib.FrameworkBased:Init()
                 return player.Functions.GetMoney('bank')
             elseif accountType == "black_money" then
                 return player.Functions.GetMoney('black_money')
+            end
+
+            if accountType == 'all' then
+                return {
+                    {
+                        name = "cash",
+                        money = player.Functions.GetMoney('cash')
+                    },
+                    {
+                        name = "bank",
+                        money = player.Functions.GetMoney('bank')
+                    },
+                }
             end
         else
             -- Custom GetMoney function
@@ -139,7 +165,7 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:RemoveMoney(id, accountType, amount, reason)
         if not reason then reason = "No reason provided" end
-        amount = tonumber(amount)
+        if(type(amount) ~= 'number') then amount = tonumber(amount) end
 
         local player = lib.FrameworkBased:GetPlayer(id)
 
@@ -288,8 +314,8 @@ function lib.FrameworkBased:Init()
             for _,v in pairs(accounts) do
                 table.insert(formatedAccounts, {
                     name = tostring(v.account_type),
-                    number = tostring(v.account_type),
-                    money = tonumber(v.amount),
+                    accountnumber = tostring(v.account_type),
+                    balance = tonumber(v.amount),
                     owner = v.citizenid
                 })
             end
@@ -381,5 +407,25 @@ function lib.FrameworkBased:Init()
         else
             -- Custom HandleCompanyAccounts function
         end
+    end
+
+    function lib.FrameworkBased:GetClosestPlayer(coords, range)
+        local players = lib.FrameworkBased:GetPlayers()
+        local closest = nil
+        local closestDistance = range
+
+        for k,v in pairs(players) do
+            -- local player = lib.FrameworkBased:GetPlayer(v)
+            local playerCoords = GetEntityCoords(GetPlayerPed(k))
+            local distance = #(coords - playerCoords)
+
+            if distance < closestDistance then
+                closest = k
+                closestDistance = distance
+                break
+            end
+        end
+
+        return closest, closestDistance
     end
 end

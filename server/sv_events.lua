@@ -7,3 +7,12 @@ AddEventHandler("force_lib:eventHandler", function(event, data)
 
     end
 end)
+
+lib.ClientCallbacks = {}
+
+RegisterNetEvent('force_lib:Server:TriggerClientCallback', function(name, ...)
+    if lib.ClientCallbacks[name] then
+        lib.ClientCallbacks[name](...)
+        lib.ClientCallbacks[name] = nil
+    end
+end)

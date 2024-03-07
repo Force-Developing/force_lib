@@ -78,4 +78,9 @@ function lib.Funcs:Init()
     function lib.Funcs:GetFramework()
         return lib.FrameworkName
     end
+
+    function lib.Funcs:TriggerClientCallback(name, source, cb, ...)
+        lib.ClientCallbacks[name] = cb
+        TriggerClientEvent('force_lib:Client:TriggerClientCallback', source, name, ...)
+    end
 end

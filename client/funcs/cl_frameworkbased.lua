@@ -80,4 +80,8 @@ function lib.FrameworkBased:Init()
             -- Custom IsPlayerLoaded function
         end
     end
+
+    -- function lib.FrameworkBased:GetClosestPlayer(coords, distance)
+        
+    -- end
 end

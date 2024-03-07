@@ -3,6 +3,7 @@ Config.Debug = true
 
 Config.UnkownData = 'Unkown'
 Config.UnkownImg = 'https://img.freepik.com/premium-vector/male-avatar-icon-unknown-anonymous-person-default-avatar-profile-icon-social-media-user-business-man-man-profile-silhouette-isolated-white-background-vector-illustration_735449-122.jpg'
+
 Config.TargetSystem = 'qb-target' -- Currently supports "ox_target", "qb-target", "contextmenu" or leave it blank for no target system or custom function
 Config.DefaultLocale = "en" -- [[ Sets default locale for all resources set to nil or false to use resources locale ]]
 

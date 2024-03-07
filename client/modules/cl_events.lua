@@ -13,3 +13,11 @@ AddEventHandler('onResourceStop', function(resource)
         end
     end
 end)
+
+lib.ClientCallbacks = {}
+
+RegisterNetEvent('force_lib:Client:TriggerClientCallback', function(name, ...)
+    lib.Funcs:TriggerClientCallback(name, function(...)
+        TriggerServerEvent('force_lib:Server:TriggerClientCallback', name, ...)
+    end, ...)
+end)
