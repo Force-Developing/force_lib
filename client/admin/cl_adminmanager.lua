@@ -1,5 +1,7 @@
 lib.Admin = {};
 
+-- Returns whether the LOCAL player is an admin. `id` is kept for backwards compatibility but the
+-- server always checks the calling player only.
 function lib.Admin:CheckAdmin(id)
     if not id or not tonumber(id) then id = GetPlayerServerId(PlayerId()) end
     local promise = promise.new()
