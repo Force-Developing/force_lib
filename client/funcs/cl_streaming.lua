@@ -4,21 +4,54 @@ lib.Streaming = {
 };
 
 function lib.Streaming:Init()
-    function lib.Streaming:RequestModel(model)
-        local model = (type(model) == 'number' and model or GetHashKey(model))
-        if HasModelLoaded(model) then return true end
-        RequestModel(model)
-        while not HasModelLoaded(model) do Wait(0) end
+    local DEFAULT_STREAMING_TIMEOUT_MS = 10000
 
-        if HasCollisionForModelLoaded(model) then return true end
-        RequestCollisionForModel(model)
-        while not HasCollisionForModelLoaded(model) do Wait(0) end
+    -- Returns true when the model is loaded, false if it doesn't exist or timed out (instead of hanging forever).
+    function lib.Streaming:RequestModel(model, timeout)
+        local modelHash = (type(model) == 'number' and model or GetHashKey(model))
+        if HasModelLoaded(modelHash) and HasCollisionForModelLoaded(modelHash) then return true end
+
+        if not IsModelInCdimage(modelHash) then
+            lib.Funcs:DebugPrint(("RequestModel: model '%s' does not exist"):format(tostring(model)))
+            return false
+        end
+
+        local deadline = GetGameTimer() + (timeout or DEFAULT_STREAMING_TIMEOUT_MS)
+
+        RequestModel(modelHash)
+        while not HasModelLoaded(modelHash) do
+            if GetGameTimer() > deadline then
+                lib.Funcs:DebugPrint(("RequestModel: timed out loading '%s'"):format(tostring(model)))
+                return false
+            end
+            Wait(0)
+        end
+
+        RequestCollisionForModel(modelHash)
+        while not HasCollisionForModelLoaded(modelHash) and GetGameTimer() <= deadline do Wait(0) end
+
+        return true
     end
 
-    function lib.Streaming:LoadAnimDict(dict)
+    -- Returns true when the dictionary is loaded, false if it doesn't exist or timed out.
+    function lib.Streaming:LoadAnimDict(dict, timeout)
         if HasAnimDictLoaded(dict) then return true end
+
+        if not DoesAnimDictExist(dict) then
+            lib.Funcs:DebugPrint(("LoadAnimDict: anim dict '%s' does not exist"):format(tostring(dict)))
+            return false
+        end
+
+        local deadline = GetGameTimer() + (timeout or DEFAULT_STREAMING_TIMEOUT_MS)
         RequestAnimDict(dict)
-        while not HasAnimDictLoaded(dict) do Wait(0) end
+        while not HasAnimDictLoaded(dict) do
+            if GetGameTimer() > deadline then
+                lib.Funcs:DebugPrint(("LoadAnimDict: timed out loading '%s'"):format(tostring(dict)))
+                return false
+            end
+            Wait(0)
+        end
+        return true
     end
 
     function lib.Streaming:CreateObject(model, coords, isNetwork, options, cb)
