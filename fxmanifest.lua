@@ -40,6 +40,9 @@ server_scripts {
     -- [[ DEPENDENCIES (For some functions) ]]
     '@oxmysql/lib/MySQL.lua',
 
+    -- [[ SERVER-ONLY CONFIG (secrets, never sent to clients) ]]
+    'config.server.lua',
+
     -- [[ STARTER FILES ]]
     'server/sv_versionChecker.lua',
     'server/sv_lib.lua',

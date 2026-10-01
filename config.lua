@@ -16,10 +16,10 @@ Config.Framework = {
     Event = "esx:getSharedObject",
 }
 
--- [[ This table gets deleted on the client so server dumps can't get the server token! ]]
+-- [[ Non-secret Discord settings. config.lua is a shared_script and is downloaded by EVERY client, ]]
+-- [[ so never put the bot token or webhooks here. Secrets live in config.server.lua or in convars.  ]]
 Config.Discord = {
-    ServerGuild = '',
-    ServerToken = '', -- Requiers a discord bot (https://discord.com/developers/applications)
+    ServerGuild = '', -- Discord server (guild) ID, used for "role:" admin checks
 
     Logs = {
         LogsColor = 16711680, -- Sets the default color when color is nil
@@ -29,8 +29,6 @@ Config.Discord = {
         steamURL = true,
         discordID = true,
         IP = false,
-
-        DefaultWebhook = "", -- This is the default webhook that will be used if webhook is nil or the functions is invoked by the lib
     }
 }
 
@@ -38,7 +36,7 @@ Config.Discord = {
 Config.AdminManager = {
     Enabled = true,
 
-    Admins = { -- Check out the documentation for further information on what types you can add (https://force-developing.gitbook.io/docs/force-library)
+    Admins = { -- Check out the documentation for further information on what types you can add (https://docs.forcedevelopments.com/resources/force-library/configuration)
         "steam:123123123", -- Steam HEX ID
         "role:123123123123", -- Discord Role
         "discord:123123123123" -- Discord user ID

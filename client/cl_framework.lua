@@ -71,7 +71,6 @@ local frameworkName = nil
         end
 
         if framework then
-            Config.Discord = {}
             lib:Init(framework, frameworkName)
         end
     -- end
