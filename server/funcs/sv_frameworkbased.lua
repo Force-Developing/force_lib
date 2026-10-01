@@ -25,7 +25,12 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:GetPlayerFromIdentifier(identifier)
         if lib.FrameworkName == 'ESX' then
-            return lib.Framework.GetPlayerFromSocialnumber(identifier) or lib.Framework.GetPlayerFromIdentifier(identifier)
+            -- GetPlayerFromSocialnumber only exists on some modified ESX builds; stock ESX uses GetPlayerFromIdentifier.
+            if type(lib.Framework.GetPlayerFromSocialnumber) == 'function' then
+                local player = lib.Framework.GetPlayerFromSocialnumber(identifier)
+                if player then return player end
+            end
+            return lib.Framework.GetPlayerFromIdentifier(identifier)
         elseif lib.FrameworkName == 'QBCore' then
             return lib.Framework.Functions.GetPlayerByCitizenId(identifier)
         else
@@ -55,11 +60,11 @@ function lib.FrameworkBased:Init()
     end
 
     function lib.FrameworkBased:RemoveInventoryItem(id, item, count)
-        local player = self.FrameworkBased:GetPlayer(id)
+        local player = lib.FrameworkBased:GetPlayer(id)
 
-        if self.FrameworkName == 'ESX' then
+        if lib.FrameworkName == 'ESX' then
             player.removeInventoryItem(item, count)
-        elseif self.FrameworkName == 'QBCore' then
+        elseif lib.FrameworkName == 'QBCore' then
             player.Functions.RemoveItem(item, count)
         else
             -- Custom RemoveInventoryItem function
@@ -83,6 +88,16 @@ function lib.FrameworkBased:Init()
         end
     end
 
+    -- ESX bank balance: the 'bank' account, falling back to a custom `bank` resource export when present.
+    local function getEsxBankMoney(player)
+        local ok, money = pcall(function() return player.getAccount('bank').money end)
+        if ok and money then return money end
+
+        local okExport, exportMoney = pcall(function() return exports.bank:getMainAccountMoney(player.socialnumber) end)
+        if okExport and exportMoney then return exportMoney end
+        return 0
+    end
+
     function lib.FrameworkBased:GetMoney(id, accountType)
         local player = lib.FrameworkBased:GetPlayer(id)
 
@@ -90,10 +105,7 @@ function lib.FrameworkBased:Init()
             if accountType == "cash" then
                 return player.getMoney()
             elseif accountType == "bank" then
-                local status, error = pcall(function() return player.getAccount('bank').money end)
-                if not status then
-                    return exports.bank:getMainAccountMoney(player.socialnumber)
-                end
+                return getEsxBankMoney(player)
             elseif accountType == "black_money" then
                 return player.getAccount('black_money').money
             end
@@ -106,7 +118,7 @@ function lib.FrameworkBased:Init()
                     },
                     {
                         name = "bank",
-                        money = (player.getAccount('bank')) and player.getAccount('bank').money or exports.bank:getMainAccountMoney(player.socialnumber)
+                        money = getEsxBankMoney(player)
                     },
                 }
             end
@@ -210,12 +222,13 @@ function lib.FrameworkBased:Init()
         end
     end
 
-    function lib.FrameworkBased:ShowNotification(id, text)
+    ---@param notifyType? string optional, e.g. 'success' | 'error' | 'inform' (framework dependent)
+    function lib.FrameworkBased:ShowNotification(id, text, notifyType)
         if lib.FrameworkName == 'ESX' then
-            -- lib.Framework.ShowNotification(id, text)
-            TriggerClientEvent('esx:showNotification', id, text)
-        elseif self.FrameworkName == 'QBCore' then
-            lib.Framework.Functions.Notify(id, text)
+            TriggerClientEvent('esx:showNotification', id, text, notifyType)
+        elseif lib.FrameworkName == 'QBCore' then
+            -- QBCore has no server-side Notify function; QBX handles the same client event.
+            TriggerClientEvent('QBCore:Notify', id, text, notifyType)
         else
             -- Custom ShowNotification function
         end
@@ -409,23 +422,28 @@ function lib.FrameworkBased:Init()
         end
     end
 
+    -- Returns the server id of the closest player within `range` (nil = unlimited) and the distance to them.
+    -- Returns nil, range when nobody is in range.
     function lib.FrameworkBased:GetClosestPlayer(coords, range)
-        local players = lib.FrameworkBased:GetPlayers()
+        local players = lib.FrameworkBased:GetPlayers() or {}
+        local origin = vector3(coords.x, coords.y, coords.z)
         local closest = nil
-        local closestDistance = range
+        local closestDistance = range or math.huge
 
-        for k,v in pairs(players) do
-            -- local player = lib.FrameworkBased:GetPlayer(v)
-            local playerCoords = GetEntityCoords(GetPlayerPed(k))
-            local distance = #(coords - playerCoords)
+        for _, player in pairs(players) do
+            local playerId = tonumber(type(player) == 'table' and player.source or player)
+            local ped = playerId and GetPlayerPed(playerId) or 0
 
-            if distance < closestDistance then
-                closest = k
-                closestDistance = distance
-                break
+            if ped ~= 0 then
+                local distance = #(origin - GetEntityCoords(ped))
+                if distance < closestDistance then
+                    closest = playerId
+                    closestDistance = distance
+                end
             end
         end
 
+        if not closest then return nil, range end
         return closest, closestDistance
     end
 end
