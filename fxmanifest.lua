@@ -10,8 +10,8 @@ versioncheck 'https://raw.githubusercontent.com/Force-Developing/force_lib/main/
 name '^2force_lib'
 version '2.0'
 
-dependencys {
-    'oxmysql' -- This can be oxmysql or mysql-async, i recommend oxmysql for better performance!
+dependencies {
+    'oxmysql' -- Required: server_scripts loads @oxmysql/lib/MySQL.lua
 }
 
 client_scripts {
@@ -38,7 +38,7 @@ client_scripts {
 
 server_scripts {
     -- [[ DEPENDENCIES (For some functions) ]]
-    '@oxmysql/lib/MySQL.lua', -- Can me mysql-async aswell but i really recommend switching to oxmysql if you haven't already
+    '@oxmysql/lib/MySQL.lua',
 
     -- [[ STARTER FILES ]]
     'server/sv_versionChecker.lua',
