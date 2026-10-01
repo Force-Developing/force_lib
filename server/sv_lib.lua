@@ -25,15 +25,17 @@ do
     Config.Discord.Logs.DefaultWebhook = resolve('force_lib:discordWebhook', secrets.DefaultWebhook ~= '' and secrets.DefaultWebhook or Config.Discord.Logs.DefaultWebhook)
 end
 
-function lib:Init(framework, frameworkName)
+function lib:Init(framework, frameworkName, frameworkVariant)
     self.Framework = framework;
-    self.FrameworkName = frameworkName;
+    self.FrameworkName = frameworkName; -- 'ESX', 'QBCore' (also on QBX) or 'Custom'
+    self.FrameworkVariant = frameworkVariant; -- e.g. 'QBX' when running qbx_core through its qb-core bridge
 
     self.Funcs:Init();
     self.FrameworkBased:Init();
     self.Ready = true;
 
-    print("^4"..GetCurrentResourceName().."^0 Just loaded ^2["..self.FrameworkName.."]!^0");
+    local label = self.FrameworkVariant and (self.FrameworkName .. " / " .. self.FrameworkVariant) or self.FrameworkName
+    print("^4"..GetCurrentResourceName().."^0 Just loaded ^2["..label.."]!^0");
 end
 
 exports('Fetch', function()

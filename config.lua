@@ -4,13 +4,16 @@ Config.Debug = true
 Config.UnkownData = 'Unkown'
 Config.UnkownImg = 'https://img.freepik.com/premium-vector/male-avatar-icon-unknown-anonymous-person-default-avatar-profile-icon-social-media-user-business-man-man-profile-silhouette-isolated-white-background-vector-illustration_735449-122.jpg'
 
-Config.TargetSystem = 'qb-target' -- Currently supports "ox_target", "qb-target", "contextmenu" or leave it blank for no target system or custom function
+-- "auto" (recommended) picks the first running of ox_target, qb-target, contextmenu.
+-- An explicit "ox_target", "qb-target" or "contextmenu" is used when that resource is running, otherwise the first running one is used.
+-- Leave it blank ('') for no target system / your own custom function.
+Config.TargetSystem = 'auto'
 Config.DefaultLocale = "en" -- [[ Sets default locale for all resources set to nil or false to use resources locale ]]
 
 Config.Framework = {
-    AutoDetect = true, -- As of now auto detect supports ESX & QBCore, feel free to send suggestions on what other frameworks you would like to se support for!
+    AutoDetect = true, -- Detects ESX (es_extended), QBCore (qb-core) and QBX (qbx_core, via its qb-core bridge). Waits up to 15s for the framework to start
 
-    -- [[ When using anything other then QBCore or ESX you should put AutoDetect to false and change these values so it adapts to your framework ]]
+    -- [[ Only used when AutoDetect = false (custom framework). The framework-specific functions then need to be adapted by you ]]
     Resource = "es_extended",
     Export = "getSharedObject", -- Set this to nil or false to use the event below
     Event = "esx:getSharedObject",
@@ -45,7 +48,11 @@ Config.AdminManager = {
     }
 }
 
--- [[ This will auto detect the framework if AutoDetect is set to true so only change when AutoDetect is set to false or needed ]]
+-- [[ SQL mapping. With AutoDetect, the keys below that differ per framework are overridden:            ]]
+-- [[   ESX:        character=users,   vehicles=owned_vehicles,  identifier=identifier, vehicleinfo=vehicle  ]]
+-- [[   QBCore/QBX: character=players, vehicles=player_vehicles, identifier/owner=citizenid, vehicleinfo=mods ]]
+-- [[ All other keys (licenses, jobs, jobGrades, ...) are kept as written here. The defaults below        ]]
+-- [[ (characters / socialnumber / garages) are NOT stock ESX - they match a multi-character ESX setup.   ]]
 Config.SQL = {
     Tables = {
         character = "characters",

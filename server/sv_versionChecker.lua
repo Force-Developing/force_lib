@@ -4,7 +4,7 @@ AddEventHandler('onResourceStart', function(resourceName)
     end
 
     if GetCurrentResourceName() ~= "force_lib" then
-        return print("Please rename the resource to force_lib")
+        return -- sh_framework.lua already prints a clear error about the resource name
     end
 
     local url = GetResourceMetadata(resourceName, "versioncheck", 0)

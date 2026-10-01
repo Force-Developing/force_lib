@@ -1,4 +1,6 @@
 CreateThread(function()
+    while not lib.Ready do Wait(250) end -- framework detection may still be waiting for the framework
+
     local function GetPlayerIdentifierId(id, idType)
         for i = 0, GetNumPlayerIdentifiers(id) do
             if GetPlayerIdentifier(id, i) ~= nil then

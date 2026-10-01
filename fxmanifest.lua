@@ -61,7 +61,8 @@ server_scripts {
 
 shared_scripts {
     'config.lua',
-    'shared.lua'
+    'shared.lua',
+    'shared/sh_framework.lua'
 }
 
 files {
