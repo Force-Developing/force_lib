@@ -40,7 +40,8 @@ function lib.Funcs:Init()
     end
 
     function lib.Funcs:GetPlayerDetails(src)
-        local player_id = src
+        local player_id = tonumber(src)
+        if not player_id or player_id <= 0 or GetNumPlayerIdentifiers(player_id) == 0 then return '' end
         local ids = lib.Funcs:ExtractIdentifiers(player_id)
         if Config.Discord.Logs.discordID then if ids.discord ~= "" then _discordID ="\n**Discord ID:** <@" ..ids.discord:gsub("discord:", "")..">" else _discordID = "\n**Discord ID:** N/A" end else _discordID = "" end
         if Config.Discord.Logs.steamID then if ids.steam ~= "" then _steamID ="\n**Steam ID:** " ..ids.steam.."" else _steamID = "\n**Steam ID:** N/A" end else _steamID = "" end
@@ -50,8 +51,11 @@ function lib.Funcs:Init()
     end
 
     function lib.Funcs:SendDiscordLog(webHook, header, message, target, color)
-        if not webHook then
+        if not webHook or webHook == '' then
             webHook = Config.Discord.Logs.DefaultWebhook
+        end
+        if not webHook or webHook == '' then
+            return lib.Funcs:DebugPrint("SendDiscordLog: no webhook given and no default webhook set (convar force_lib:discordWebhook or config.server.lua)")
         end
         local resourceName = GetInvokingResource()
         if not resourceName then resourceName = GetCurrentResourceName() end
@@ -59,12 +63,12 @@ function lib.Funcs:Init()
             {
                 type = "rich",
                 color = color or Config.Discord.Logs.LogsColor,
-                title = header,
+                title = tostring(header or ''):sub(1, 256),
                 author = {
                     ["name"] = 'Force Developments - ' .. resourceName,
                     ['icon_url'] = 'https://cdn.discordapp.com/attachments/1083112303236485120/1176799520525385778/New_Project.png?ex=65702ef5&is=655db9f5&hm=2597de5b58d90a9851a115e90a598041028133fe32addbaa5405fac11d5b2206&'
                 },
-                description = message .. "\n " .. lib.Funcs:GetPlayerDetails(target or source),
+                description = (tostring(message or '') .. "\n " .. lib.Funcs:GetPlayerDetails(target or source)):sub(1, 4000),
                 footer = {
                     icon_url = 'https://cdn.discordapp.com/attachments/1083112303236485120/1176799776965152831/Force_dev_logotyp.png?ex=65702f32&is=655dba32&hm=1286c75fe4cb7d38d409c42d79cdca030e41f202e0291fc9a728fecb7228c800&',
                     text = os.date("%d") .. "/" .. os.date("%m") .. "/" .. os.date("%Y") .. " - " .. os.date("%H") .. ":" .. os.date("%M")
@@ -72,7 +76,7 @@ function lib.Funcs:Init()
             }
         }
 
-        PerformHttpRequest(webHook, function(err, text, headers) end, "POST", json.encode({username = "Force Lib - "..resourceName, embeds = embeds}), { ["Content-Type"] = "application/json" })
+        PerformHttpRequest(webHook, function(err, text, headers) end, "POST", json.encode({username = "Force Lib - "..resourceName, embeds = embeds, allowed_mentions = {parse = {}}}), { ["Content-Type"] = "application/json" })
     end
 
     function lib.Funcs:GetFramework()
@@ -80,7 +84,10 @@ function lib.Funcs:Init()
     end
 
     function lib.Funcs:TriggerClientCallback(name, source, cb, ...)
-        lib.ClientCallbacks[name] = cb
+        source = tonumber(source)
+        if not source then return end
+        lib.ClientCallbacks[source] = lib.ClientCallbacks[source] or {}
+        lib.ClientCallbacks[source][name] = cb
         TriggerClientEvent('force_lib:Client:TriggerClientCallback', source, name, ...)
     end
 end

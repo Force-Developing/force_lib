@@ -29,6 +29,8 @@ Config.Discord = {
         steamURL = true,
         discordID = true,
         IP = false,
+
+        AllowClientLogs = true, -- Client-side SendDiscordLog calls (rate limited, tagged [Client]). Set false to ignore them entirely
     }
 }
 

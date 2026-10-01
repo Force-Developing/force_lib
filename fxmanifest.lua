@@ -46,6 +46,7 @@ server_scripts {
     -- [[ STARTER FILES ]]
     'server/sv_versionChecker.lua',
     'server/sv_lib.lua',
+    'server/sv_events.lua',
 
     -- [[ FUNCS ]]
     'server/funcs/sv_funcs.lua',

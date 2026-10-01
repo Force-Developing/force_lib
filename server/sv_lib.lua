@@ -31,6 +31,7 @@ function lib:Init(framework, frameworkName)
 
     self.Funcs:Init();
     self.FrameworkBased:Init();
+    self.Ready = true;
 
     print("^4"..GetCurrentResourceName().."^0 Just loaded ^2["..self.FrameworkName.."]!^0");
 end
