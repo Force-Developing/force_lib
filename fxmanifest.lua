@@ -8,7 +8,7 @@ description 'Library for ^2Force^1 FiveM resources'
 github 'https://github.com/Force-Developing/force_lib'
 versioncheck 'https://raw.githubusercontent.com/Force-Developing/force_lib/main/version.txt'
 name '^2force_lib'
-version '2.0'
+version '2.1'
 
 dependencies {
     'oxmysql' -- Required: server_scripts loads @oxmysql/lib/MySQL.lua
