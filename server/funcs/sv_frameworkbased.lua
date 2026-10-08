@@ -1,5 +1,11 @@
 lib.FrameworkBased = {};
 
+-- The player is offline, or connected without a loaded character (e.g. in character selection).
+local function missingPlayer(fn, id, fallback)
+    lib.Funcs:DebugPrint(("FrameworkBased:%s: no loaded player for id %s"):format(fn, tostring(id)))
+    return fallback
+end
+
 function lib.FrameworkBased:Init()
     function lib.FrameworkBased:GetPlayer(id)
         if lib.FrameworkName == 'ESX' then
@@ -13,6 +19,7 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:GetIdentifier(id)
         local player = lib.FrameworkBased:GetPlayer(id)
+        if not player then return missingPlayer('GetIdentifier', id, nil) end
 
         if lib.FrameworkName == 'ESX' then
             return player.socialnumber or player.identifier
@@ -42,6 +49,7 @@ function lib.FrameworkBased:Init()
         if not data then data = {} end
 
         local player = lib.FrameworkBased:GetPlayer(id)
+        if not player then return missingPlayer('AddInventoryItem', id, false) end
 
         if lib.FrameworkName == 'ESX' then
             local status, error = pcall(function() player.addInventoryItem(item, count, data) end)
@@ -53,7 +61,7 @@ function lib.FrameworkBased:Init()
                 })
             end
         elseif lib.FrameworkName == 'QBCore' then
-            player.Functions.AddItem(item, count, false, data)
+            return player.Functions.AddItem(item, count, false, data)
         else
             -- Custom AddInventoryItem function
         end
@@ -61,11 +69,12 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:RemoveInventoryItem(id, item, count)
         local player = lib.FrameworkBased:GetPlayer(id)
+        if not player then return missingPlayer('RemoveInventoryItem', id, false) end
 
         if lib.FrameworkName == 'ESX' then
             player.removeInventoryItem(item, count)
         elseif lib.FrameworkName == 'QBCore' then
-            player.Functions.RemoveItem(item, count)
+            return player.Functions.RemoveItem(item, count)
         else
             -- Custom RemoveInventoryItem function
         end
@@ -73,6 +82,7 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:GetInventoryItem(id, item)
         local player = lib.FrameworkBased:GetPlayer(id)
+        if not player then return missingPlayer('GetInventoryItem', id, {count = 0}) end
 
         if lib.FrameworkName == 'ESX' then
             return player.getInventoryItem(item) or {count = 0}
@@ -100,6 +110,7 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:GetMoney(id, accountType)
         local player = lib.FrameworkBased:GetPlayer(id)
+        if not player then return missingPlayer('GetMoney', id, accountType == 'all' and {} or 0) end
 
         if lib.FrameworkName == 'ESX' then
             if accountType == "cash" then
@@ -153,6 +164,7 @@ function lib.FrameworkBased:Init()
         amount = tonumber(amount)
 
         local player = lib.FrameworkBased:GetPlayer(id)
+        if not player then return missingPlayer('GiveMoney', id, false) end
 
         if lib.FrameworkName == 'ESX' then
             if accountType == 'cash' then
@@ -180,6 +192,7 @@ function lib.FrameworkBased:Init()
         if(type(amount) ~= 'number') then amount = tonumber(amount) end
 
         local player = lib.FrameworkBased:GetPlayer(id)
+        if not player then return missingPlayer('RemoveMoney', id, false) end
 
         if lib.FrameworkName == 'ESX' then
             if accountType == 'cash' then
@@ -236,6 +249,7 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:GetPlayerData(id)
         local player = lib.FrameworkBased:GetPlayer(id)
+        if not player then return missingPlayer('GetPlayerData', id, nil) end
         local info = nil
         local missingData = Config.UnkownData
         local missingImg = Config.UnkownImg
@@ -304,6 +318,7 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:SetJob(id, job, grade)
         local player = lib.FrameworkBased:GetPlayer(id)
+        if not player then return missingPlayer('SetJob', id, false) end
 
         if lib.FrameworkName == 'ESX' then
             player.setJob(job, grade)
