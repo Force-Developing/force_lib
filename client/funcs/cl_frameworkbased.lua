@@ -1,31 +1,44 @@
 lib.FrameworkBased = {};
 
+-- QB/ESX server callbacks have no timeout, and a callback that isn't registered (yet, or any more after a framework
+-- restart) is never answered. Waiting for it forever would hang the calling thread, so give up after this long.
+local CALLBACK_TIMEOUT_MS = math.max(1000, GetConvarInt('force_lib:callbackTimeout', 60000))
+
+-- Triggers a framework server callback and waits for its first value, at most timeoutMs.
+-- Returns value, timedOut.
+function lib.TriggerCallbackTimeout(name, timeoutMs, ...)
+    local p = promise.new()
+    local function onResult(res) p:resolve({ res }) end
+
+    if lib.FrameworkName == "QBCore" then
+        lib.Framework.Functions.TriggerCallback(name, onResult, ...)
+    elseif lib.FrameworkName == "ESX" then
+        lib.Framework.TriggerServerCallback(name, onResult, ...)
+    else
+        -- You're custom callback function here (call onResult(result) with the answer)
+        return nil, false
+    end
+
+    SetTimeout(timeoutMs, function() p:resolve(false) end) -- resolving a settled promise is a no-op
+    local result = Citizen.Await(p)
+    if result == false then
+        ForceLibBridge.PrintError(("Server callback '%s' did not answer within %d ms (not registered on the server, or it never calls cb)."):format(tostring(name), timeoutMs))
+        return nil, true
+    end
+    return result[1], false
+end
+
 function lib.FrameworkBased:Init()
     function lib.FrameworkBased:TriggerCallback(name, cb, ...)
-        local promise = promise.new()
-        if lib.FrameworkName == "QBCore" then
-            lib.Framework.Functions.TriggerCallback(name, function(res)
-                if (type(cb) == "table" or type(cb) == "function") then
-                    cb(res)
-                end
-    
-                promise:resolve(res)
-            end, ...)
-        elseif lib.FrameworkName == "ESX" then
-            lib.Framework.TriggerServerCallback(name, function(res)
-                if (type(cb) == "table" or type(cb) == "function") then
-                    cb(res)
-                end
-    
-                promise:resolve(res)
-            end, ...)
-        else
-            -- You're custom callback function here
+        local res, timedOut = lib.TriggerCallbackTimeout(name, CALLBACK_TIMEOUT_MS, ...)
+        if timedOut then return nil end
+
+        if (type(cb) == "table" or type(cb) == "function") then
+            cb(res)
         end
-    
-        Citizen.Await(promise)
+
         if (cb == false) then
-            return promise.value
+            return res
         end
     end
 

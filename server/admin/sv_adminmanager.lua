@@ -110,9 +110,9 @@ AddEventHandler('playerDropped', function()
     cache[source] = nil
 end)
 
-CreateThread(function()
-    while not lib.Ready do Wait(250) end -- framework detection may still be waiting for the framework
-
+-- Registered (again) whenever force_lib becomes ready: a restarted framework starts with an empty callback table,
+-- and an unregistered callback is never answered, which would leave the client waiting.
+lib:OnReady(function()
     -- Only ever checks the calling player. Any id the client sends is ignored.
     lib.FrameworkBased:CreateCallback('force_lib:admin:CheckAdmin', function(source, cb)
         local src = tonumber(source)
