@@ -901,7 +901,7 @@ function lib.Funcs:Init()
 
     function lib.Funcs:Menu(data)
         if GetResourceState('qb-menu') == 'started' then
-            exports["qb-menu"]:openMenu(data)
+            return exports["qb-menu"]:openMenu(data)
         else
             -- Custom Menu Function
         end
@@ -909,7 +909,8 @@ function lib.Funcs:Init()
 
     function lib.Funcs:Input(data)
         if GetResourceState('qb-input') == 'started' then
-            exports["qb-input"]:ShowInput(data)
+            -- the dialog result (nil when cancelled) was dropped before
+            return exports["qb-input"]:ShowInput(data)
         else
             -- Custom Input Function
         end
