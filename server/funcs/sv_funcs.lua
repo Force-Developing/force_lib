@@ -87,12 +87,13 @@ function lib.Funcs:Init()
     end
 
     function lib.Funcs:GetFramework()
+        ForceLibBridge.TryInit()
         return lib.FrameworkName
     end
 
     -- True once force_lib has loaded the framework (false again while the framework restarts).
     function lib.Funcs:IsReady()
-        return lib.Ready == true
+        return ForceLibBridge.TryInit()
     end
 
     -- Waits until force_lib is ready, at most timeoutMs (default 30000). Call it from a thread. Returns IsReady().

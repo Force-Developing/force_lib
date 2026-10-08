@@ -59,6 +59,9 @@ function lib:Init(framework, frameworkName, frameworkVariant)
 end
 
 exports('Fetch', function()
+    -- Resolve the framework now if it already runs but force_lib hasn't noticed yet (see ForceLibBridge.TryInit).
+    local ok, err = pcall(ForceLibBridge.TryInit)
+    if not ok then ForceLibBridge.PrintError(tostring(err)) end
     -- while not lib.Funcs or not lib.Funcs.GetFramework or not lib.FrameworkBased do -- Saftey feature
     --     Wait(0);
     -- end

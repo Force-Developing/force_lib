@@ -160,6 +160,14 @@ local function isTargetResource(resource)
     return false
 end
 
+-- Initialises right now if the framework is available. Replaced by Detect. Resource start events of everything
+-- ensured from server.cfg at boot are only delivered after the whole ensure batch ran (seen on FXServer), so a
+-- resource ensured right after the framework would load before force_lib noticed the framework. Fetch() and the
+-- framework functions call this first, which resolves the framework lazily at first use instead.
+function ForceLibBridge.TryInit()
+    return lib.Ready == true
+end
+
 --- Waits (inside a thread) until force_lib is initialised, at most timeoutMs. Returns whether it is ready.
 function ForceLibBridge.AwaitReady(timeoutMs)
     if lib.Ready then return true end
@@ -178,7 +186,7 @@ function ForceLibBridge.GuardModule(module, moduleName, waitFor, waitMs, passThr
     for key, fn in pairs(module) do
         if type(fn) == 'function' and key ~= 'Init' and not (passThrough and passThrough[key]) then
             module[key] = function(...)
-                if not lib.Ready and not (waitFor and waitFor[key] and ForceLibBridge.AwaitReady(waitMs)) then
+                if not lib.Ready and not ForceLibBridge.TryInit() and not (waitFor and waitFor[key] and ForceLibBridge.AwaitReady(waitMs)) then
                     local name = moduleName .. ':' .. key
                     if not warnedNotReady[name] then
                         warnedNotReady[name] = true
@@ -241,6 +249,13 @@ local function detectServer(onFound)
             end
             waiting = false
         end)
+    end
+
+    ForceLibBridge.TryInit = function()
+        if lib.Ready then return true end
+        local fresh = detectOnce(current and current.resource)
+        if fresh then found(fresh) end
+        return lib.Ready == true
     end
 
     -- Also replaces whatever a previous run of force_lib left in GlobalState.
@@ -316,6 +331,17 @@ local function detectClient(onFound)
             local result = isStarted(value.resource) and detectOnce(value.resource)
             if result then init(result) else load() end
         end
+    end
+
+    ForceLibBridge.TryInit = function()
+        if lib.Ready then return true end
+        if not decision then
+            apply(GlobalState[STATE_KEY])
+        elseif isStarted(decision.resource) then
+            local result = detectOnce(decision.resource)
+            if result then init(result) end
+        end
+        return lib.Ready == true
     end
 
     AddStateBagChangeHandler(STATE_KEY, 'global', function(_, _, value) apply(value) end)
