@@ -124,17 +124,37 @@ function lib.Funcs:Init()
             Prop = options.Prop or false,
         }
     
-        RequestAnimDict(dict)
-        while not HasAnimDictLoaded(dict) do
-            Wait(0)
+        -- Local per call: it used to be a global, so a second EntityPlayAnim replaced the first one's and finishing
+        -- the first animation stopped the second and called the second's cb.
+        local completed = false
+        local function CompleteAnimation(done)
+            if completed then return end
+            completed = true
+            StopAnimTask(Anim.Player, Anim.Dictionary, Anim.Animation, Anim.Speed)
+            if Anim.Freeze or IsEntityPositionFrozen(Anim.Player) then
+                FreezeEntityPosition(Anim.Player, false)
+            end
+            if Anim.Prop and Anim.Prop.Object and DoesEntityExist(Anim.Prop.Object) then
+                DetachEntity(Anim.Prop.Object, true, true)
+                DeleteEntity(Anim.Prop.Object)
+            end
+            if cb then
+                cb(done)
+            end
+        end
+
+        if not lib.Streaming:LoadAnimDict(Anim.Dictionary) then
+            completed = true
+            if cb then cb(false) end
+            return
         end
 
         if Anim.Counter then
             CreateThread(function()
-                while Anim.Counter > 0 do
+                while Anim.Counter > 0 and not completed do
                     Wait(1000)
                     Anim.Counter = Anim.Counter - 1
-    
+
                     if Anim.Counter <= 0 then
                         Anim.Complete = true
                         break
@@ -148,22 +168,32 @@ function lib.Funcs:Init()
         end
 
         CreateThread(function()
-            while Anim.Counter > 0 or Anim.Infinite or Anim.AnimTime == -1 or Anim.AnimTime > 0 do
+            while not completed and (Anim.Counter > 0 or Anim.Infinite or Anim.AnimTime == -1 or Anim.AnimTime > 0) do
                 Wait(4)
-    
+
+                -- the entity was deleted (or the player's ped replaced): nothing left to animate
+                if not DoesEntityExist(Anim.Player) then
+                    CompleteAnimation(false)
+                    break
+                end
+
                 if not IsEntityPlayingAnim(Anim.Player, Anim.Dictionary, Anim.Animation, Anim.Flag) then
                     if not IsEntityPositionFrozen(Anim.Player) then
                         FreezeEntityPosition(Anim.Player, Anim.Freeze)
                     end
                     TaskPlayAnimAdvanced(Anim.Player, Anim.Dictionary, Anim.Animation, Anim.Position.x, Anim.Position.y, Anim.Position.z, 0.0, 0.0, Anim.Heading, Anim.Speed, 0.5, -1, Anim.Flag, Anim.AnimTime, 1, 1)
                 end
-    
+
                 if Anim.Prop then
-                    if not DoesEntityExist(Anim.Prop.Object) then
+                    if not Anim.Prop.Object or not DoesEntityExist(Anim.Prop.Object) then
                         local propModel = GetHashKey(Anim.Prop.Model)
-                        RequestModel(propModel) while not HasModelLoaded(propModel) do Wait(0) end
-                        Anim.Prop.Object = CreateObject(propModel, Anim.Position.x, Anim.Position.y, Anim.Position.z, true, true, false)
-                        AttachEntityToEntity(Anim.Prop.Object, Anim.Player, GetPedBoneIndex(Anim.Player, Anim.Prop.BoneIndex), Anim.Prop.Pos.x or 0, Anim.Prop.Pos.y or 0, Anim.Prop.Pos.z or 0, Anim.Prop.Rot.x or 0, Anim.Prop.Rot.y or 0, Anim.Prop.Rot.z or 0, false, false, true, false, 0, true)
+                        if lib.Streaming:RequestModel(propModel) then
+                            Anim.Prop.Object = CreateObject(propModel, Anim.Position.x, Anim.Position.y, Anim.Position.z, true, true, false)
+                            SetModelAsNoLongerNeeded(propModel)
+                            AttachEntityToEntity(Anim.Prop.Object, Anim.Player, GetPedBoneIndex(Anim.Player, Anim.Prop.BoneIndex), Anim.Prop.Pos.x or 0, Anim.Prop.Pos.y or 0, Anim.Prop.Pos.z or 0, Anim.Prop.Rot.x or 0, Anim.Prop.Rot.y or 0, Anim.Prop.Rot.z or 0, false, false, true, false, 0, true)
+                        else
+                            Anim.Prop = false -- model can't be loaded: keep animating without it
+                        end
                     end
                 end
 
@@ -173,14 +203,14 @@ function lib.Funcs:Init()
                         break
                     end
                 end
-    
+
                 if Anim.Cancable then
                     if IsControlJustPressed(0, 73) then
                         CompleteAnimation(false)
                         break
                     end
                 end
-    
+
                 if Anim.Complete then
                     CompleteAnimation(true)
                     break
@@ -190,22 +220,11 @@ function lib.Funcs:Init()
 
         CreateThread(function()
             if cancelFunc then
-                print(cancelFunc())
                 if cancelFunc() then
                     CompleteAnimation(true)
                 end
             end
         end)
-
-        function CompleteAnimation(completed)
-            StopAnimTask(Anim.Player, Anim.Dictionary, Anim.Animation, Anim.Speed)
-            if Anim.Freeze or IsEntityPositionFrozen(Anim.Player) then
-                FreezeEntityPosition(Anim.Player, false)
-            end
-            if cb then
-                cb(completed)
-            end
-        end
     end
 
     function lib.Funcs:PlayBasicAnim(entity, dict, anim, blendIn, blendOut, duration, flag, playbackRate, lockX, lockY, lockZ)
