@@ -5,15 +5,23 @@ lib = {
     Math = {}
 };
 
+-- Defines every module function once. Runs at load (before the framework is known), so the tables Fetch()
+-- hands out always contain the functions, even when a dependent resource fetches before lib:Init ran.
+function lib:DefineModules()
+    if self.ModulesDefined then return end
+    self.ModulesDefined = true;
+    self.Funcs:Init();
+    self.Streaming:Init();
+    self.FrameworkBased:Init();
+    self.Math:Init();
+end
+
 function lib:Init(framework, frameworkName, frameworkVariant)
     self.Framework = framework;
     self.FrameworkName = frameworkName; -- 'ESX', 'QBCore' (also on QBX) or 'Custom'
     self.FrameworkVariant = frameworkVariant; -- e.g. 'QBX' when running qbx_core through its qb-core bridge
 
-    self.Funcs:Init();
-    self.Streaming:Init();
-    self.FrameworkBased:Init();
-    self.Math:Init();
+    self:DefineModules();
     self.Ready = true;
 
     local label = self.FrameworkVariant and (self.FrameworkName .. " / " .. self.FrameworkVariant) or self.FrameworkName

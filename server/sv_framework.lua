@@ -1,4 +1,6 @@
 -- The framework file NEEDS to be loaded last so every module exists before lib:Init runs.
+lib:DefineModules()
+
 if ForceLibBridge.CheckResourceName() then
     ForceLibBridge.Detect(function(framework, frameworkName, frameworkVariant)
         ForceLibBridge.ResolveTarget()
