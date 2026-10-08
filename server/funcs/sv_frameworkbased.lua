@@ -435,8 +435,6 @@ function lib.FrameworkBased:Init()
             TriggerEvent('esx_addonaccount:getSharedAccount', 'society_' .. company, function(account)
                 cAccount = account
             end)
-            if not cAccount then cAccount = nil end;
-            print(cAccount)
                 
                 if func.name == 'add' then
                     if cAccount then
