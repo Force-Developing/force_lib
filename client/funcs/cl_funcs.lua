@@ -837,26 +837,32 @@ function lib.Funcs:Init()
         end
     end
 
+    -- Non-blocking, like before. Every provider is called in its own thread and pcall: a missing progress bar resource
+    -- must not break the caller.
     function lib.Funcs:StartProgressbar(text, time)
-        if lib.FrameworkName == 'ESX' then
-            local status, error = pcall(function() exports['esx_progressbar']:startUI(time, text) end)
-            if not status then
-                exports['progressbar']:StartProgress(text, time, nil, '#00b350')
-            end
-        elseif lib.FrameworkName == 'QBCore' then
-            exports['qb-core']:Progressbar(time, text)
-        else
-            -- Custom progressbar function
-            local player = PlayerPedId()
-            CreateThread(function()
-                while time > 0 do
+        time = tonumber(time) or 0
+        CreateThread(function()
+            if lib.FrameworkName == 'ESX' then
+                if pcall(function() exports['esx_progressbar']:startUI(time, text) end) then return end
+                -- current esx_progressbar (also behind ESX.Progressbar)
+                if pcall(function() exports['esx_progressbar']:Progressbar(text, time, {}) end) then return end
+                local ok, err = pcall(function() exports['progressbar']:StartProgress(text, time, nil, '#00b350') end)
+                if not ok then lib.Funcs:DebugPrint('StartProgressbar: no ESX progress bar available: ' .. tostring(err)) end
+            elseif lib.FrameworkName == 'QBCore' then
+                -- QBCore.Functions.Progressbar(name, label, duration, ...). qb-core needs the 'progressbar' resource,
+                -- QBX's bridge uses ox_lib (and blocks until it ends, hence the thread).
+                local ok, err = pcall(lib.Framework.Functions.Progressbar, 'force_lib_progressbar', text, time, false, true, {}, {}, {}, {}, function() end, function() end)
+                if not ok then lib.Funcs:DebugPrint('StartProgressbar: ' .. tostring(err)) end
+            else
+                -- Custom progressbar function
+                local player = PlayerPedId()
+                local endsAt = GetGameTimer() + time
+                while GetGameTimer() < endsAt do
                     Wait(0)
-
-                    time = time - 1
                     lib.Funcs:Draw3DText(GetEntityCoords(player), text)
                 end
-            end)
-        end
+            end
+        end)
     end
 
     function lib.Funcs:StringToVector3(str)
