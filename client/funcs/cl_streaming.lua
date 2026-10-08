@@ -86,7 +86,11 @@ function lib.Streaming:Init()
         lib.Streaming:RequestModel(model)
         local entity = CreatePed(4, model, coords.x, coords.y, coords.z, heading or coords.w, isNetwork or false, false)
 
-        if not options then return (cb(entity) or entity) end
+        if not options then
+            -- cb is optional here too (calling a nil cb errored)
+            if cb then return (cb(entity) or entity) end
+            return entity
+        end
         local Entity = {
             freeze = options.freeze or false,
             blockEvents = options.blockEvents or false,

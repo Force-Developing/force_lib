@@ -918,15 +918,15 @@ function lib.Funcs:Init()
     end
 
     function lib.Funcs:CreateClientCallback(name, cb)
-        if name == nil then return lib.Funcs.DebugPrint('var: name in lib.Funcs.CreateClientCallback is nil') end
-        if cb == nil then return lib.Funcs.DebugPrint('var: cb in lib.Funcs.CreateClientCallback is nil') end
+        if name == nil then return lib.Funcs:DebugPrint('var: name in lib.Funcs.CreateClientCallback is nil') end
+        if cb == nil then return lib.Funcs:DebugPrint('var: cb in lib.Funcs.CreateClientCallback is nil') end
     
         lib.ClientCallbacks[name] = cb
     end
     
     function lib.Funcs:TriggerClientCallback(name, cb, ...)
-        if name == nil then return lib.Funcs.DebugPrint('var: name in lib.Funcs.TriggerClientCallback is nil') end
-        if cb == nil then return lib.Funcs.DebugPrint('var: cb in lib.Funcs.TriggerClientCallback is nil') end
+        if name == nil then return lib.Funcs:DebugPrint('var: name in lib.Funcs.TriggerClientCallback is nil') end
+        if cb == nil then return lib.Funcs:DebugPrint('var: cb in lib.Funcs.TriggerClientCallback is nil') end
     
         if not lib.ClientCallbacks[name] then return end
         lib.ClientCallbacks[name](cb, ...)
