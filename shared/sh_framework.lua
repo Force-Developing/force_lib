@@ -110,12 +110,10 @@ local function candidatesFor(resource)
 end
 
 -- Returns { framework, candidate } for the first started candidate whose core object can be fetched.
--- `justStarted` is the resource whose start event is running: inside that event it still reports "starting",
--- although its scripts (and exports) are loaded.
-local function detectOnce(resource, justStarted)
+local function detectOnce(resource)
     local firstError
     for _, candidate in ipairs(candidatesFor(resource)) do
-        if isStarted(candidate.resource) or (candidate.resource == justStarted and GetResourceState(justStarted) == 'starting') then
+        if isStarted(candidate.resource) then
             local ok, obj = pcall(candidate.get)
             if ok and obj then return { framework = obj, candidate = candidate } end
             firstError = firstError or candidate.hint or ("'%s' is started but its core object could not be fetched: %s"):format(candidate.resource, tostring(obj))
@@ -253,14 +251,11 @@ local function detectServer(onFound)
     -- after it loads. A restarted framework gets its core object fetched again (the old one is dead).
     AddEventHandler('onServerResourceStart', function(resource)
         if not lib.Ready and (not current or resource == current.resource) then
-            local fresh = detectOnce(current and current.resource, resource)
+            local fresh = detectOnce(current and current.resource)
             if fresh then found(fresh) end
         elseif lib.Ready and isTargetResource(resource) then
-            -- still "starting" inside its own start event: resolve once it reports "started"
-            SetTimeout(0, function()
-                Config.TargetSystem = resolveTarget()
-                publish()
-            end)
+            Config.TargetSystem = resolveTarget()
+            publish()
         end
     end)
 
@@ -347,7 +342,7 @@ local function detectClient(onFound)
     -- fresh core object when the framework restarts.
     AddEventHandler('onClientResourceStart', function(resource)
         if decision and resource == decision.resource and not lib.Ready then
-            local result = detectOnce(resource, resource)
+            local result = detectOnce(resource)
             if result then init(result) else load() end
         end
     end)
