@@ -110,13 +110,11 @@ AddEventHandler('playerDropped', function()
     cache[source] = nil
 end)
 
--- Registered (again) whenever force_lib becomes ready: a restarted framework starts with an empty callback table,
--- and an unregistered callback is never answered, which would leave the client waiting.
-lib:OnReady(function()
-    -- Only ever checks the calling player. Any id the client sends is ignored.
-    lib.FrameworkBased:CreateCallback('force_lib:admin:CheckAdmin', function(source, cb)
-        local src = tonumber(source)
-        if not src then return cb(false) end
-        isAdmin(src, cb)
-    end)
+-- CreateCallback registers it again whenever force_lib becomes ready (e.g. after a framework restart).
+lib:DefineModules() -- idempotent; the framework file (loaded last) calls it too
+-- Only ever checks the calling player. Any id the client sends is ignored.
+lib.FrameworkBased:CreateCallback('force_lib:admin:CheckAdmin', function(source, cb)
+    local src = tonumber(source)
+    if not src then return cb(false) end
+    isAdmin(src, cb)
 end)

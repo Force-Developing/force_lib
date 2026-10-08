@@ -172,10 +172,11 @@ local warnedNotReady = {}
 
 --- Wraps every function of a module so that a call made while force_lib is not ready (framework not started yet,
 --- or restarting) returns nil with a one-time warning instead of indexing a missing or dead core object.
---- Functions listed in `waitFor` yield anyway, so they first wait up to waitMs for force_lib.
-function ForceLibBridge.GuardModule(module, moduleName, waitFor, waitMs)
+--- Functions listed in `waitFor` yield anyway, so they first wait up to waitMs for force_lib. Functions listed in
+--- `passThrough` handle the not-ready case themselves.
+function ForceLibBridge.GuardModule(module, moduleName, waitFor, waitMs, passThrough)
     for key, fn in pairs(module) do
-        if type(fn) == 'function' and key ~= 'Init' then
+        if type(fn) == 'function' and key ~= 'Init' and not (passThrough and passThrough[key]) then
             module[key] = function(...)
                 if not lib.Ready and not (waitFor and waitFor[key] and ForceLibBridge.AwaitReady(waitMs)) then
                     local name = moduleName .. ':' .. key

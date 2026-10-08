@@ -234,7 +234,12 @@ function lib.FrameworkBased:Init()
         end
     end
 
-    function lib.FrameworkBased:CreateCallback(name, passed)
+    -- Callbacks live in the framework's callback table: a callback created before force_lib had loaded the framework
+    -- would be lost, and a framework restart empties the table. So every callback is remembered and registered
+    -- (again) whenever force_lib becomes ready. An unregistered callback is never answered by QB/ESX.
+    local registeredCallbacks = {}
+
+    local function registerCallback(name, passed)
         if lib.FrameworkName == 'ESX' then
             lib.Framework.RegisterServerCallback(name, passed)
         elseif lib.FrameworkName == 'QBCore' then
@@ -243,6 +248,15 @@ function lib.FrameworkBased:Init()
             -- Custom CreateCallback function
         end
     end
+
+    function lib.FrameworkBased:CreateCallback(name, passed)
+        registeredCallbacks[name] = passed
+        if lib.Ready then registerCallback(name, passed) end
+    end
+
+    lib:OnReady(function()
+        for name, passed in pairs(registeredCallbacks) do registerCallback(name, passed) end
+    end)
 
     function lib.FrameworkBased:GetPlayers()
         if lib.FrameworkName == 'ESX' then
