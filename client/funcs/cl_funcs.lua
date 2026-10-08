@@ -752,6 +752,16 @@ function lib.Funcs:Init()
         return lib.FrameworkName
     end
 
+    -- True once force_lib has loaded the framework (false again while the framework restarts).
+    function lib.Funcs:IsReady()
+        return lib.Ready == true
+    end
+
+    -- Waits until force_lib is ready, at most timeoutMs (default 30000). Call it from a thread. Returns IsReady().
+    function lib.Funcs:AwaitReady(timeoutMs)
+        return ForceLibBridge.AwaitReady(tonumber(timeoutMs) or 30000)
+    end
+
     function lib.Funcs:CreateTarget(target, elements, data)
         if not data then data = {} end
         local Target = {
