@@ -247,24 +247,32 @@ function lib.Funcs:Init()
         end)
     end
 
+    -- Collision may never load (missing entity, coords under the map...): never wait longer than this with the
+    -- screen faded out.
+    local TELEPORT_COLLISION_TIMEOUT_MS = 5000
+
     function lib.Funcs:TeleportEntity(entity, coords, cooldown)
         if not cooldown then cooldown = 100 end
         DoScreenFadeOut(100)
-    
-        RequestCollisionAtCoord(coords.x, coords.y, coords.z)
-        while not HasCollisionLoadedAroundEntity(entity) do
-        RequestCollisionAtCoord(coords.x, coords.x, coords.x)
-            Citizen.Wait(0)
-        end
 
-        Citizen.Wait(cooldown)
+        local ok, err = pcall(function()
+            local deadline = GetGameTimer() + TELEPORT_COLLISION_TIMEOUT_MS
+            RequestCollisionAtCoord(coords.x, coords.y, coords.z)
+            while DoesEntityExist(entity) and not HasCollisionLoadedAroundEntity(entity) and GetGameTimer() < deadline do
+                RequestCollisionAtCoord(coords.x, coords.y, coords.z)
+                Citizen.Wait(0)
+            end
 
-        SetEntityCoords(entity,  coords.x,  coords.y,  coords.z, true, false, false, true)
-        if coords.w then
-            SetEntityHeading(entity, coords.w)
-        end
+            Citizen.Wait(cooldown)
+
+            SetEntityCoords(entity,  coords.x,  coords.y,  coords.z, true, false, false, true)
+            if coords.w then
+                SetEntityHeading(entity, coords.w)
+            end
+        end)
 
         DoScreenFadeIn(100)
+        if not ok then error(err, 0) end
     end
 
     function lib.Funcs:GetVehicles()
