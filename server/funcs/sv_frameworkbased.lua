@@ -6,6 +6,25 @@ local function missingPlayer(fn, id, fallback)
     return fallback
 end
 
+-- oxmysql's await throws on an SQL error (missing table on this server's schema...). Log it and return no rows
+-- instead of erroring inside the calling resource, which would leave its callback unanswered.
+local function queryRows(query, params)
+    local ok, rows = pcall(MySQL.query.await, query, params)
+    if not ok then
+        print(('^1[force_lib] SQL error: %s^0'):format(tostring(rows)))
+        return {}
+    end
+    return type(rows) == 'table' and rows or {}
+end
+
+-- A NULL column, the JSON text 'null' (decodes to the truthy json.null) or broken JSON all count as "no table".
+local function decodeTable(value)
+    if type(value) ~= 'string' or value == '' then return nil end
+    local ok, decoded = pcall(json.decode, value)
+    if ok and type(decoded) == 'table' then return decoded end
+    return nil
+end
+
 function lib.FrameworkBased:Init()
     function lib.FrameworkBased:GetPlayer(id)
         if lib.FrameworkName == 'ESX' then
@@ -331,11 +350,11 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:FetchBankAccounts(identifier)
         if lib.FrameworkName == 'ESX' then
-            return MySQL.query.await('SELECT * FROM `bank_accounts` WHERE `owner` = ?', {
+            return queryRows('SELECT * FROM `bank_accounts` WHERE `owner` = ?', {
                 identifier
             })
         elseif lib.FrameworkName == 'QBCore' then
-            local accounts = MySQL.query.await('SELECT * FROM `bank_accounts` WHERE `citizenid` = ?', {
+            local accounts = queryRows('SELECT * FROM `bank_accounts` WHERE `citizenid` = ?', {
                 identifier
             })
             local formatedAccounts = {}
@@ -356,16 +375,14 @@ function lib.FrameworkBased:Init()
     function lib.FrameworkBased:FetchInvoices(identifier)
         if lib.FrameworkName == 'ESX' then
             local receivedInvoices = {}
-            local invoices = MySQL.query.await('SELECT * FROM `billing`', {})
+            local invoices = queryRows('SELECT * FROM `billing`', {})
 
-            if invoices then
-                for i = 1, #invoices do
-                    local v = invoices[i]
-                    v.receiver = json.decode(v.receiver);
+            for i = 1, #invoices do
+                local v = invoices[i]
+                v.receiver = decodeTable(v.receiver)
 
-                    if v.receiver.socialnumber == identifier then
-                        table.insert(receivedInvoices, v)
-                    end
+                if v.receiver and v.receiver.socialnumber == identifier then
+                    table.insert(receivedInvoices, v)
                 end
             end
 
@@ -379,7 +396,7 @@ function lib.FrameworkBased:Init()
             end
             return tableInvoices
         elseif lib.FrameworkName == 'QBCore' then
-            local invoices = MySQL.query.await('SELECT * FROM `phone_invoices` WHERE `citizenid` = ?', {
+            local invoices = queryRows('SELECT * FROM `phone_invoices` WHERE `citizenid` = ?', {
                 identifier
             })
 
