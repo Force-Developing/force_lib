@@ -43,6 +43,7 @@ function lib.Funcs:Init()
         local player_id = tonumber(src)
         if not player_id or player_id <= 0 or GetNumPlayerIdentifiers(player_id) == 0 then return '' end
         local ids = lib.Funcs:ExtractIdentifiers(player_id)
+        local _discordID, _steamID, _steamURL, _ip
         if Config.Discord.Logs.discordID then if ids.discord ~= "" then _discordID ="\n**Discord ID:** <@" ..ids.discord:gsub("discord:", "")..">" else _discordID = "\n**Discord ID:** N/A" end else _discordID = "" end
         if Config.Discord.Logs.steamID then if ids.steam ~= "" then _steamID ="\n**Steam ID:** " ..ids.steam.."" else _steamID = "\n**Steam ID:** N/A" end else _steamID = "" end
         if Config.Discord.Logs.steamURL then  if ids.steam ~= "" then _steamURL ="\nhttps://steamcommunity.com/profiles/" ..tonumber(ids.steam:gsub("steam:", ""),16).."" else _steamURL = "\n**Steam URL:** N/A" end else _steamURL = "" end
@@ -76,7 +77,13 @@ function lib.Funcs:Init()
             }
         }
 
-        PerformHttpRequest(webHook, function(err, text, headers) end, "POST", json.encode({username = "Force Lib - "..resourceName, embeds = embeds, allowed_mentions = {parse = {}}}), { ["Content-Type"] = "application/json" })
+        PerformHttpRequest(webHook, function(status)
+            -- Discord answers 204 on success; 429 = rate limited, 4xx = bad/deleted webhook. Logs are best effort.
+            status = tonumber(status) or 0
+            if status < 200 or status >= 300 then
+                lib.Funcs:DebugPrint(("SendDiscordLog: Discord answered HTTP %d, log from %s dropped"):format(status, resourceName))
+            end
+        end, "POST", json.encode({username = "Force Lib - "..resourceName, embeds = embeds, allowed_mentions = {parse = {}}}), { ["Content-Type"] = "application/json" })
     end
 
     function lib.Funcs:GetFramework()
