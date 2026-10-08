@@ -11,7 +11,7 @@ Config.TargetSystem = 'auto'
 Config.DefaultLocale = "en" -- [[ Sets default locale for all resources set to nil or false to use resources locale ]]
 
 Config.Framework = {
-    AutoDetect = true, -- Detects ESX (es_extended), QBCore (qb-core) and QBX (qbx_core, via its qb-core bridge). Waits up to 15s for the framework to start
+    AutoDetect = true, -- Detects ESX (es_extended), QBCore (qb-core) and QBX (qbx_core, via its qb-core bridge). A framework started later (or restarted) is picked up when it starts
 
     -- [[ Only used when AutoDetect = false (custom framework). The framework-specific functions then need to be adapted by you ]]
     Resource = "es_extended",
