@@ -21,8 +21,11 @@ AddEventHandler('onResourceStart', function(resourceName)
     PerformHttpRequest(url, function(err, text, headers)
         --
         print("^0[ ^3Performing Update Check ^0: "..resourceName.." ] ")
-        if (text ~= nil) then
-            if tonumber(version) >= tonumber(text) then
+        -- GitHub can answer with an error page ("404: Not Found", HTML); only compare real version numbers.
+        local latest = tonumber(err) == 200 and type(text) == 'string' and tonumber((text:gsub('%s+', ''))) or nil
+        if latest and tonumber(version) then
+            text = tostring(latest)
+            if tonumber(version) >= latest then
                 print(divider)
                 print(lastestVersionStr)
                 print(divider)
