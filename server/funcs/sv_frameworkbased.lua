@@ -431,7 +431,8 @@ function lib.FrameworkBased:Init()
 
     function lib.FrameworkBased:HandleCompanyAccounts(company, func)
         if lib.FrameworkName == 'ESX' then
-            local cAccount = {};
+            -- stays nil when esx_addonaccount isn't running or the society doesn't exist ({} made add/remove call nil)
+            local cAccount = nil;
             TriggerEvent('esx_addonaccount:getSharedAccount', 'society_' .. company, function(account)
                 cAccount = account
             end)
