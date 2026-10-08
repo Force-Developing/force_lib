@@ -790,6 +790,31 @@ function lib.Funcs:Init()
         return ForceLibBridge.AwaitReady(tonumber(timeoutMs) or 30000)
     end
 
+    -- ox_target calls onSelect(data) with data.entity, qb-target calls action(entity). An option written for one
+    -- system gets the other system's field added (only when it is missing), so it works on both.
+    local function withField(option, field, fn)
+        local copy = {}
+        for k, v in pairs(option) do copy[k] = v end
+        copy[field] = fn
+        return copy
+    end
+
+    local function toOxOption(option)
+        if type(option) ~= 'table' or option.onSelect ~= nil or option.action == nil then return option end
+        local action = option.action
+        return withField(option, 'onSelect', function(selected)
+            return action(type(selected) == 'table' and selected.entity or selected)
+        end)
+    end
+
+    local function toQbOption(option)
+        if type(option) ~= 'table' or option.action ~= nil or option.onSelect == nil then return option end
+        local onSelect = option.onSelect
+        return withField(option, 'action', function(entity)
+            return onSelect({ entity = entity })
+        end)
+    end
+
     function lib.Funcs:CreateTarget(target, elements, data)
         if not data then data = {} end
         local Target = {
@@ -801,8 +826,15 @@ function lib.Funcs:Init()
         }
 
         if Config.TargetSystem == 'ox_target' then
+            elements = toOxOption(elements)
             if Target.isEntity then
-                exports.ox_target:addEntity(NetworkGetNetworkIdFromEntity(target), elements)
+                -- addEntity takes network ids; an entity that isn't networked (e.g. Streaming:CreateEntity's default)
+                -- has none and needs addLocalEntity.
+                if NetworkGetEntityIsNetworked(target) then
+                    exports.ox_target:addEntity(NetworkGetNetworkIdFromEntity(target), elements)
+                else
+                    exports.ox_target:addLocalEntity(target, elements)
+                end
             else
                 exports.ox_target:addBoxZone({
                     coords = target,
@@ -813,6 +845,7 @@ function lib.Funcs:Init()
                 })
             end
         elseif Config.TargetSystem == 'qb-target' then
+            elements = toQbOption(elements)
             if Target.isEntity then
                 exports['qb-target']:AddTargetEntity(target, {
                     options = {elements},
