@@ -47,36 +47,43 @@ function lib.FrameworkBased:Init()
         local missingData = Config.UnkownData
         local missingImg = Config.UnkownImg
         if lib.FrameworkName == 'ESX' then
-            local playerData = lib.Framework.GetPlayerData()
+            -- `character` only exists on modified ESX builds; stock ESX keeps the names on the player data itself.
+            local playerData = lib.Framework.GetPlayerData() or {}
+            local character = type(playerData.character) == 'table' and playerData.character or {}
+            local job = type(playerData.job) == 'table' and playerData.job or {}
             info = {
-                identifier = playerData.character.socialnumber or playerData.identifier or missingData,
+                identifier = character.socialnumber or playerData.identifier or missingData,
 
-                firstname = playerData.character.firstname or missingData,
-                lastname = playerData.character.lastname or missingData,
-                dob = playerData.character.socialnumber or playerData.character.dob or missingData,
-                phonenumber = playerData.character.phone_number or missingData,
-                img = playerData.character.image or missingImg,
+                firstname = character.firstname or playerData.firstName or missingData,
+                lastname = character.lastname or playerData.lastName or missingData,
+                dob = character.socialnumber or character.dob or playerData.dateofbirth or missingData,
+                phonenumber = character.phone_number or playerData.phone_number or missingData,
+                img = character.image or missingImg,
 
-                jobName = playerData.job.name or missingData,
-                gradeLabel = playerData.job.grade_label or missingData,
-                grade = playerData.job.grade or missingData,
-                jobLabel = playerData.job.label or missingData
+                jobName = job.name or missingData,
+                gradeLabel = job.grade_label or missingData,
+                grade = job.grade or missingData,
+                jobLabel = job.label or missingData
             }
         elseif lib.FrameworkName == 'QBCore' then
-            local playerData = lib.Framework.Functions.GetPlayerData()
+            -- Before a character is loaded the player data is empty.
+            local playerData = lib.Framework.Functions.GetPlayerData() or {}
+            local charinfo = type(playerData.charinfo) == 'table' and playerData.charinfo or {}
+            local job = type(playerData.job) == 'table' and playerData.job or {}
+            local grade = type(job.grade) == 'table' and job.grade or {}
             info = {
                 identifier = playerData.citizenid or missingData,
 
-                firstname = playerData.charinfo.firstname or missingData,
-                lastname = playerData.charinfo.lastname or missingData,
-                dob = playerData.charinfo.dob or missingData,
-                phonenumber = playerData.charinfo.phone_number or missingData,
-                img = playerData.charinfo.image or missingImg,
+                firstname = charinfo.firstname or missingData,
+                lastname = charinfo.lastname or missingData,
+                dob = charinfo.dob or charinfo.birthdate or missingData,
+                phonenumber = charinfo.phone_number or charinfo.phone or missingData,
+                img = charinfo.image or missingImg,
 
-                jobName = playerData.job.name or missingData,
-                gradeLabel = playerData.job.grade.label or missingData,
-                grade = playerData.job.grade.name or missingData,
-                jobLabel = playerData.job.label or missingData
+                jobName = job.name or missingData,
+                gradeLabel = grade.label or grade.name or missingData,
+                grade = grade.name or missingData,
+                jobLabel = job.label or missingData
             }
         else
             -- Custom GetPlayerData function
@@ -88,7 +95,8 @@ function lib.FrameworkBased:Init()
         if lib.FrameworkName == 'ESX' then
             return lib.Framework.IsPlayerLoaded()
         elseif lib.FrameworkName == 'QBCore' then
-            return lib.Framework.Functions.GetPlayerData().charinfo ~= nil
+            local playerData = lib.Framework.Functions.GetPlayerData()
+            return type(playerData) == 'table' and playerData.charinfo ~= nil
         else
             -- Custom IsPlayerLoaded function
         end
