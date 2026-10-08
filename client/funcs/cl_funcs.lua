@@ -217,10 +217,10 @@ function lib.Funcs:Init()
         local model = (type(modelName) == 'number' and modelName or GetHashKey(modelName))
 
         Citizen.CreateThread(function()
-            RequestModel(model)
-
-            while not HasModelLoaded(model) do
-                Citizen.Wait(0)
+            -- Invalid model or loading timed out: there is no vehicle to hand to cb.
+            if not lib.Streaming:RequestModel(model) then
+                print(("^1[force_lib] SpawnVehicle: model '%s' could not be loaded - no vehicle spawned^0"):format(tostring(modelName)))
+                return
             end
 
             local vehicle = CreateVehicle(model, coords.x, coords.y, coords.z, heading, true, false)
@@ -234,7 +234,8 @@ function lib.Funcs:Init()
 
             RequestCollisionAtCoord(coords.x, coords.y, coords.z)
 
-            while not HasCollisionLoadedAroundEntity(vehicle) do
+            local deadline = GetGameTimer() + 5000
+            while DoesEntityExist(vehicle) and not HasCollisionLoadedAroundEntity(vehicle) and GetGameTimer() < deadline do
                 RequestCollisionAtCoord(coords.x, coords.y, coords.z)
                 Citizen.Wait(0)
             end
