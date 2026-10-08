@@ -66,22 +66,39 @@ RegisterNetEvent("force_lib:eventHandler", function(event, data)
 end)
 
 -- [[ Client callbacks: keyed per player so one client can't answer (or overwrite) another player's callback. ]]
+-- [src] = { [requestId] = { name, cb } }
 lib.ClientCallbacks = {}
+lib.ClientCallbackTimeoutMs = math.max(1000, GetConvarInt('force_lib:clientCallbackTimeout', 60000))
 
-RegisterNetEvent('force_lib:Server:TriggerClientCallback', function(name, ...)
+local lastClientCallbackId = 0
+function lib.NextClientCallbackId()
+    lastClientCallbackId = lastClientCallbackId + 1
+    return lastClientCallbackId
+end
+
+-- The callback belongs to another resource: an error in it must not break force_lib's handler.
+function lib.CallClientCallback(cb, ...)
+    local ok, err = pcall(cb, ...)
+    if not ok then print(('^1[force_lib] client callback handler failed: %s^0'):format(tostring(err))) end
+end
+
+RegisterNetEvent('force_lib:Server:TriggerClientCallback', function(name, requestId, ...)
     local src = source
     local pending = lib.ClientCallbacks[src]
-    if not pending or type(name) ~= 'string' then return end
+    if not pending or type(name) ~= 'string' or type(requestId) ~= 'number' then return end
 
-    local cb = pending[name]
-    if cb then
-        pending[name] = nil
-        cb(...)
+    local entry = pending[requestId]
+    if entry and entry.name == name then
+        pending[requestId] = nil
+        lib.CallClientCallback(entry.cb, ...)
     end
 end)
 
 AddEventHandler('playerDropped', function()
     local src = source
     clientLogHistory[src] = nil
+    local pending = lib.ClientCallbacks[src]
     lib.ClientCallbacks[src] = nil
+    -- nobody is going to answer these any more
+    for _, entry in pairs(pending or {}) do lib.CallClientCallback(entry.cb) end
 end)

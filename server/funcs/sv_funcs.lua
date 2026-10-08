@@ -93,11 +93,24 @@ function lib.Funcs:Init()
         return ForceLibBridge.AwaitReady(tonumber(timeoutMs) or 30000)
     end
 
+    -- cb receives the client's answer. Every request has its own id, so concurrent calls of the same callback each get
+    -- their own answer. cb is called without values when the client doesn't answer within the timeout or the player
+    -- drops, so nothing waits forever.
     function lib.Funcs:TriggerClientCallback(name, source, cb, ...)
         source = tonumber(source)
         if not source then return end
         lib.ClientCallbacks[source] = lib.ClientCallbacks[source] or {}
-        lib.ClientCallbacks[source][name] = cb
-        TriggerClientEvent('force_lib:Client:TriggerClientCallback', source, name, ...)
+        local requestId = lib.NextClientCallbackId()
+        lib.ClientCallbacks[source][requestId] = { name = name, cb = cb }
+
+        SetTimeout(lib.ClientCallbackTimeoutMs, function()
+            local pending = lib.ClientCallbacks[source]
+            if not pending or not pending[requestId] then return end
+            pending[requestId] = nil
+            lib.Funcs:DebugPrint(("TriggerClientCallback: player %s did not answer '%s' in time"):format(source, tostring(name)))
+            lib.CallClientCallback(cb)
+        end)
+
+        TriggerClientEvent('force_lib:Client:TriggerClientCallback', source, name, requestId, ...)
     end
 end
