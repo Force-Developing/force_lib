@@ -236,11 +236,11 @@ function lib.Funcs:Init()
         local model = (type(modelName) == 'number' and modelName or GetHashKey(modelName))
 
         Citizen.CreateThread(function()
-            -- Invalid model or loading timed out: cb gets 0, the handle CreateVehicle returns when it fails, so a caller
-            -- waiting for cb is never left hanging. DoesEntityExist(0) is false.
+            -- Invalid model or loading timed out: no vehicle, so cb is not called (as in 2.1). The thread ends instead
+            -- of spinning forever and the model request is released.
             if not lib.Streaming:RequestModel(model) then
+                SetModelAsNoLongerNeeded(model)
                 print(("^3[force_lib] WARNING: SpawnVehicle: model '%s' could not be loaded - no vehicle spawned^0"):format(tostring(modelName)))
-                if cb ~= nil then cb(0) end
                 return
             end
 
