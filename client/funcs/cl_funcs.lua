@@ -829,7 +829,13 @@ function lib.Funcs:Init()
             heading = data.heading or 0.0
         }
 
-        if Config.TargetSystem == 'ox_target' then
+        -- The server's choice arrives with its framework decision. Until then (GlobalState not received yet) resolve
+        -- locally instead of running with 'auto', which matches no system.
+        ForceLibBridge.TryInit()
+        local targetSystem = Config.TargetSystem
+        if targetSystem == 'auto' then targetSystem = ForceLibBridge.ResolveTargetLocal() end
+
+        if targetSystem == 'ox_target' then
             elements = toOxOption(elements)
             if Target.isEntity then
                 -- addEntity takes network ids; an entity that isn't networked (e.g. Streaming:CreateEntity's default)
@@ -848,7 +854,7 @@ function lib.Funcs:Init()
                     options = {elements}
                 })
             end
-        elseif Config.TargetSystem == 'qb-target' then
+        elseif targetSystem == 'qb-target' then
             elements = toQbOption(elements)
             if Target.isEntity then
                 exports['qb-target']:AddTargetEntity(target, {
@@ -867,7 +873,7 @@ function lib.Funcs:Init()
                     distance = Target.distance
                 })
             end
-        elseif Config.TargetSystem == 'contextmenu' then
+        elseif targetSystem == 'contextmenu' then
             exports.contextmenu:Add(tostring(target), elements.name, {elements}, {onSelect = function() elements.onSelect(target) end}, nil, target)
         else
             -- Custom target function

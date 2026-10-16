@@ -154,6 +154,11 @@ function ForceLibBridge.ResolveTarget()
     Config.TargetSystem = resolveTarget()
 end
 
+-- The target system this side would pick on its own (used until the server's choice has arrived).
+function ForceLibBridge.ResolveTargetLocal()
+    return resolveTarget()
+end
+
 local function isTargetResource(resource)
     if resource == configuredTarget then return true end
     for _, name in ipairs(AUTO_TARGET_ORDER) do
