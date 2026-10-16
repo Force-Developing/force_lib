@@ -4,7 +4,7 @@ Force library is a resource where the "framework" and base functions is, i've ma
 
 ## Documentation
 
-https://force-developing.gitbook.io/docs/force-library
+https://docs.forcedevelopments.com/resources/force-library/introduction
 
 ## Download
 
@@ -15,7 +15,7 @@ https://github.com/Force-Developing/force_lib/releases
 Sits on 0.0ms on idle
 ## Upgrading from 2.1
 
-Nothing was removed or renamed. Highlights (full list: https://force-developing.gitbook.io/docs/force-library):
+Nothing was removed or renamed. Highlights (full list: https://docs.forcedevelopments.com/resources/force-library/introduction):
 
 - `Fetch()` / `imports.lua` always return complete function tables, even before the framework is loaded.
 - The server decides the framework and target system; a framework that starts late or restarts is picked up. Until then `FrameworkBased` functions return `nil` with a warning. New: `Funcs:IsReady()`, `Funcs:AwaitReady(ms)`.
