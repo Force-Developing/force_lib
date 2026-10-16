@@ -101,16 +101,15 @@ function lib.Funcs:Init()
         return ForceLibBridge.AwaitReady(tonumber(timeoutMs) or 30000)
     end
 
-    -- cb receives the client's answer. Every request has its own id, so concurrent calls of the same callback each get
-    -- their own answer. cb is called without values when the client doesn't answer within the timeout or the player
-    -- drops, so nothing waits forever.
+    -- cb receives the client's answer, as in 2.1: it is only ever called with an answer. Every request has its own id,
+    -- so concurrent calls of the same callback each get their own answer. A request nobody can answer (player
+    -- missing or dropped, callback not registered on the client, no answer within force_lib:clientCallbackTimeout) is
+    -- removed with a warning instead of being kept until the player leaves.
     function lib.Funcs:TriggerClientCallback(name, source, cb, ...)
         source = tonumber(source)
         if not source then return end
-        -- Nobody to ask (already left, or a wrong id): answer now instead of after the timeout.
         if not DoesPlayerExist(tostring(source)) then
-            lib.Funcs:DebugPrint(("TriggerClientCallback: player %s does not exist ('%s')"):format(source, tostring(name)))
-            return lib.CallClientCallback(cb)
+            return lib.ClientCallbackWarning(source, name, 'the player does not exist')
         end
         lib.ClientCallbacks[source] = lib.ClientCallbacks[source] or {}
         local requestId = lib.NextClientCallbackId()
@@ -120,8 +119,7 @@ function lib.Funcs:Init()
             local pending = lib.ClientCallbacks[source]
             if not pending or not pending[requestId] then return end
             pending[requestId] = nil
-            lib.Funcs:DebugPrint(("TriggerClientCallback: player %s did not answer '%s' in time"):format(source, tostring(name)))
-            lib.CallClientCallback(cb)
+            lib.ClientCallbackWarning(source, name, ('no answer within %d ms'):format(lib.ClientCallbackTimeoutMs))
         end)
 
         TriggerClientEvent('force_lib:Client:TriggerClientCallback', source, name, requestId, ...)

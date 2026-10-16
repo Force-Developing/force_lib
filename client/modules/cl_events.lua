@@ -17,9 +17,9 @@ end)
 lib.ClientCallbacks = {}
 
 RegisterNetEvent('force_lib:Client:TriggerClientCallback', function(name, requestId, ...)
-    -- Not registered here: answer right away (without values) so the server doesn't wait for nothing.
+    -- Not registered here: tell the server right away so it can drop the request (its cb is not called).
     if type(name) ~= 'string' or not lib.ClientCallbacks[name] then
-        return TriggerServerEvent('force_lib:Server:TriggerClientCallback', name, requestId)
+        return TriggerServerEvent('force_lib:Server:ClientCallbackMissing', name, requestId)
     end
     lib.Funcs:TriggerClientCallback(name, function(...)
         TriggerServerEvent('force_lib:Server:TriggerClientCallback', name, requestId, ...)

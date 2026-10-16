@@ -89,12 +89,16 @@ end)
 -- [[ Client callbacks: keyed per player so one client can't answer (or overwrite) another player's callback. ]]
 -- [src] = { [requestId] = { name, cb } }
 lib.ClientCallbacks = {}
-lib.ClientCallbackTimeoutMs = math.max(1000, GetConvarInt('force_lib:clientCallbackTimeout', 60000))
+lib.ClientCallbackTimeoutMs = math.max(1000, GetConvarInt('force_lib:clientCallbackTimeout', 120000))
 
 local lastClientCallbackId = 0
 function lib.NextClientCallbackId()
     lastClientCallbackId = lastClientCallbackId + 1
     return lastClientCallbackId
+end
+
+function lib.ClientCallbackWarning(src, name, reason)
+    print(('^3[force_lib] WARNING: client callback \'%s\' for player %s dropped: %s^0'):format(tostring(name), tostring(src), reason))
 end
 
 -- The callback belongs to another resource: an error in it must not break force_lib's handler.
@@ -115,11 +119,24 @@ RegisterNetEvent('force_lib:Server:TriggerClientCallback', function(name, reques
     end
 end)
 
+-- The client has no callback registered under that name (v2.1 never answered these).
+RegisterNetEvent('force_lib:Server:ClientCallbackMissing', function(name, requestId)
+    local src = source
+    local pending = lib.ClientCallbacks[src]
+    if not pending or type(requestId) ~= 'number' then return end
+    local entry = pending[requestId]
+    if entry and entry.name == name then
+        pending[requestId] = nil
+        lib.ClientCallbackWarning(src, name, 'not registered on the client')
+    end
+end)
+
 AddEventHandler('playerDropped', function()
     local src = source
     clientLogHistory[src] = nil
     local pending = lib.ClientCallbacks[src]
     lib.ClientCallbacks[src] = nil
-    -- nobody is going to answer these any more
-    for _, entry in pairs(pending or {}) do lib.CallClientCallback(entry.cb) end
+    local count = 0
+    for _ in pairs(pending or {}) do count = count + 1 end
+    if count > 0 then lib.ClientCallbackWarning(src, ('%d pending'):format(count), 'the player left') end
 end)
