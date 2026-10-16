@@ -107,6 +107,11 @@ function lib.Funcs:Init()
     function lib.Funcs:TriggerClientCallback(name, source, cb, ...)
         source = tonumber(source)
         if not source then return end
+        -- Nobody to ask (already left, or a wrong id): answer now instead of after the timeout.
+        if not DoesPlayerExist(tostring(source)) then
+            lib.Funcs:DebugPrint(("TriggerClientCallback: player %s does not exist ('%s')"):format(source, tostring(name)))
+            return lib.CallClientCallback(cb)
+        end
         lib.ClientCallbacks[source] = lib.ClientCallbacks[source] or {}
         local requestId = lib.NextClientCallbackId()
         lib.ClientCallbacks[source][requestId] = { name = name, cb = cb }
