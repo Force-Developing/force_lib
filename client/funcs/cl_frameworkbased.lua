@@ -2,7 +2,8 @@ lib.FrameworkBased = {};
 
 -- QB/ESX server callbacks have no timeout, and a callback that isn't registered (yet, or any more after a framework
 -- restart) is never answered. Waiting for it forever would hang the calling thread, so give up after this long.
-local CALLBACK_TIMEOUT_MS = math.max(1000, GetConvarInt('force_lib:callbackTimeout', 60000))
+-- Replicated convar (setr), the client only sees those. cb is not called on timeout; the return value is nil.
+local CALLBACK_TIMEOUT_MS = math.max(1000, GetConvarInt('force_lib:callbackTimeout', 120000))
 
 -- Triggers a framework server callback and waits for its first value, at most timeoutMs.
 -- Returns value, timedOut.
