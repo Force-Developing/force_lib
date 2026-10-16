@@ -7,12 +7,32 @@ local MAX_MESSAGE_LENGTH = 1500
 
 local clientLogHistory = {}
 
+-- Hosts a client-supplied webhook may point at. Matched exactly, so userinfo ("discord.com@evil.tld"), ports and
+-- look-alike hosts are rejected.
+local DISCORD_HOSTS = {
+    ['discord.com'] = true,
+    ['discordapp.com'] = true,
+    ['ptb.discord.com'] = true,
+    ['canary.discord.com'] = true,
+}
+
 local function isDiscordWebhook(url)
-    if type(url) ~= 'string' then return false end
-    return url:match('^https://discord%.com/api/webhooks/%d+/[%w_%-]+$') ~= nil
-        or url:match('^https://discordapp%.com/api/webhooks/%d+/[%w_%-]+$') ~= nil
-        or url:match('^https://ptb%.discord%.com/api/webhooks/%d+/[%w_%-]+$') ~= nil
-        or url:match('^https://canary%.discord%.com/api/webhooks/%d+/[%w_%-]+$') ~= nil
+    if type(url) ~= 'string' or #url > 256 then return false end
+    local host, path = url:match('^https://([^/]+)(/.*)$')
+    if not host or not DISCORD_HOSTS[host] then return false end
+    return path:match('^/api/webhooks/%d+/[%w_%-]+$') ~= nil
+end
+
+-- Optional server convar force_lib:webhookAllowlist = "url1,url2". When set, a client may only log to those exact
+-- webhooks. Server-side SendDiscordLog calls are not affected.
+local function isAllowedClientWebhook(url)
+    if not isDiscordWebhook(url) then return false end
+    local list = GetConvar('force_lib:webhookAllowlist', '')
+    if list:match('^%s*$') then return true end
+    for entry in list:gmatch('[^,]+') do
+        if entry:match('^%s*(.-)%s*$') == url then return true end
+    end
+    return false
 end
 
 local function isRateLimited(src)
@@ -47,7 +67,8 @@ local clientEvents = {
         local header = tostring(data.header or ''):sub(1, MAX_HEADER_LENGTH)
         local message = tostring(data.message or ''):sub(1, MAX_MESSAGE_LENGTH)
         -- Never let the client pick an arbitrary URL for the server to POST to.
-        local webHook = isDiscordWebhook(data.webHook) and data.webHook or nil
+        -- Anything else falls back to the default webhook (force_lib:discordWebhook).
+        local webHook = isAllowedClientWebhook(data.webHook) and data.webHook or nil
 
         -- The real sender's identifiers are always appended, so client logs can't impersonate others.
         lib.Funcs:SendDiscordLog(webHook, '[Client] ' .. header, message, src)
