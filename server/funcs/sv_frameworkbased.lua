@@ -52,7 +52,8 @@ function lib.FrameworkBased:Init()
     function lib.FrameworkBased:GetPlayerFromIdentifier(identifier)
         if lib.FrameworkName == 'ESX' then
             -- GetPlayerFromSocialnumber only exists on some modified ESX builds; stock ESX uses GetPlayerFromIdentifier.
-            if type(lib.Framework.GetPlayerFromSocialnumber) == 'function' then
+            -- Truthiness, not type(): functions of the core object arrive as callable tables (function references).
+            if lib.Framework.GetPlayerFromSocialnumber then
                 local player = lib.Framework.GetPlayerFromSocialnumber(identifier)
                 if player then return player end
             end
