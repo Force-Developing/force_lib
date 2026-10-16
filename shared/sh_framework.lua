@@ -110,10 +110,12 @@ local function candidatesFor(resource)
 end
 
 -- Returns { framework, candidate } for the first started candidate whose core object can be fetched.
-local function detectOnce(resource)
+-- `justStarted`: the resource whose start event is running. It may still report "starting" there, although its
+-- scripts and exports are loaded.
+local function detectOnce(resource, justStarted)
     local firstError
     for _, candidate in ipairs(candidatesFor(resource)) do
-        if isStarted(candidate.resource) then
+        if isStarted(candidate.resource) or (justStarted and candidate.resource == justStarted and GetResourceState(justStarted) == 'starting') then
             local ok, obj = pcall(candidate.get)
             if ok and obj then return { framework = obj, candidate = candidate } end
             firstError = firstError or candidate.hint or ("'%s' is started but its core object could not be fetched: %s"):format(candidate.resource, tostring(obj))
@@ -200,10 +202,28 @@ function ForceLibBridge.GuardModule(module, moduleName, waitFor, waitMs, passThr
     end
 end
 
+-- Every stop fires two events (onResourceStop plus onServerResourceStop / onClientResourceStop), and FXServer can
+-- deliver one of them late, after a restart already finished. Only the first of a pair means "stopping now";
+-- its partner is ignored, whenever it arrives.
+local function newStopPairing()
+    local open -- event names seen for the stop being handled
+    return function(eventName)
+        if open and not open[eventName] then
+            open = nil
+            return false
+        end
+        open = { [eventName] = true }
+        return true
+    end
+end
+
 -- [[ Server: decide, publish, keep watching ]]
 local function detectServer(onFound)
     local current -- the candidate in use
     local waiting = false
+    -- Set while the framework is stopping. Inside its stop event it still reads "started", so detection must not pick
+    -- up the dying core object; cleared when it starts again or on the next tick.
+    local restarting = false
 
     local function publish()
         GlobalState[STATE_KEY] = current and {
@@ -228,7 +248,8 @@ local function detectServer(onFound)
             while not lib.Ready do
                 Wait(POLL_MS)
                 if lib.Ready then break end
-                local result, lastError = detectOnce(current and current.resource)
+                local result, lastError
+                if not restarting then result, lastError = detectOnce(current and current.resource) end
                 if result then found(result) break end
                 if GetGameTimer() >= nextWarning then
                     if lastError then
@@ -253,6 +274,7 @@ local function detectServer(onFound)
 
     ForceLibBridge.TryInit = function()
         if lib.Ready then return true end
+        if restarting then return false end
         local fresh = detectOnce(current and current.resource)
         if fresh then found(fresh) end
         return lib.Ready == true
@@ -262,30 +284,54 @@ local function detectServer(onFound)
     local result = detectOnce()
     if result then found(result) else publish() waitForFramework() end
 
-    -- A framework ensured later initialises force_lib inside its own start event, i.e. before any resource ensured
-    -- after it loads. A restarted framework gets its core object fetched again (the old one is dead).
-    AddEventHandler('onServerResourceStart', function(resource)
-        if not lib.Ready and (not current or resource == current.resource) then
-            local fresh = detectOnce(current and current.resource)
-            if fresh then found(fresh) end
-        elseif lib.Ready and isTargetResource(resource) then
-            Config.TargetSystem = resolveTarget()
-            publish()
-        end
-    end)
+    -- On FXServer the onServerResource* events are delivered late (at boot after the whole ensure batch, on
+    -- `restart <framework>` after the restart finished), while onResourceStop/onResourceStart run synchronously. Both
+    -- are handled: the synchronous ones keep force_lib from handing out the dying core object during a restart, the
+    -- late ones are ignored once they are stale.
+    local isFirstStopEvent = newStopPairing()
 
-    AddEventHandler('onServerResourceStop', function(resource)
-        if current and resource == current.resource then
+    local function frameworkStopping(eventName, resource)
+        if not current or resource ~= current.resource then return false end
+        if isFirstStopEvent(eventName) then
+            restarting = true
             lib.Ready = false
             printWarning(("%s stopped - force_lib waits for it to start again."):format(resource))
+            SetTimeout(0, function() restarting = false end)
             waitForFramework()
-        elseif lib.Ready and isTargetResource(resource) then
-            -- the stopping resource still reports itself as started inside its own stop event
+        end
+        return true
+    end
+
+    local function frameworkStarted(resource)
+        if lib.Ready or (current and resource ~= current.resource) then return false end
+        restarting = false
+        local fresh = detectOnce(current and current.resource, resource)
+        if fresh then found(fresh) end
+        return true
+    end
+
+    local function targetChanged(resource)
+        if lib.Ready and isTargetResource(resource) then
+            -- the resource may still report its old state inside its own start/stop event
             SetTimeout(0, function()
                 Config.TargetSystem = resolveTarget()
                 publish()
             end)
         end
+    end
+
+    AddEventHandler('onResourceStop', function(resource)
+        if not frameworkStopping('onResourceStop', resource) then targetChanged(resource) end
+    end)
+    AddEventHandler('onServerResourceStop', function(resource)
+        if not frameworkStopping('onServerResourceStop', resource) then targetChanged(resource) end
+    end)
+
+    AddEventHandler('onResourceStart', function(resource)
+        if not frameworkStarted(resource) then targetChanged(resource) end
+    end)
+    AddEventHandler('onServerResourceStart', function(resource)
+        if not frameworkStarted(resource) then targetChanged(resource) end
     end)
 end
 
@@ -293,6 +339,7 @@ end
 local function detectClient(onFound)
     local decision
     local loading = false
+    local restarting = false -- see detectServer
 
     local function init(result)
         if SQL_PRESETS[decision.name] then mergeSQL(SQL_PRESETS[decision.name]) end
@@ -308,7 +355,7 @@ local function detectClient(onFound)
             local nextWarning = GetGameTimer() + WARN_EVERY_MS
             while decision and not lib.Ready do
                 local result, err
-                if isStarted(decision.resource) then
+                if not restarting and isStarted(decision.resource) then
                     result, err = detectOnce(decision.resource)
                     if result then init(result) break end
                 end
@@ -335,6 +382,7 @@ local function detectClient(onFound)
 
     ForceLibBridge.TryInit = function()
         if lib.Ready then return true end
+        if restarting then return false end
         if not decision then
             apply(GlobalState[STATE_KEY])
         elseif isStarted(decision.resource) then
@@ -365,20 +413,29 @@ local function detectClient(onFound)
     end
 
     -- Initialises inside the framework's own start event (resources after it see force_lib ready), and fetches a
-    -- fresh core object when the framework restarts.
-    AddEventHandler('onClientResourceStart', function(resource)
-        if decision and resource == decision.resource and not lib.Ready then
-            local result = detectOnce(resource)
-            if result then init(result) else load() end
-        end
-    end)
+    -- fresh core object when the framework restarts. Both the generic and the client-specific events are handled,
+    -- whichever arrives first wins (see detectServer).
+    local function frameworkStarted(resource)
+        if not decision or resource ~= decision.resource or lib.Ready then return end
+        restarting = false
+        local result = detectOnce(resource, resource)
+        if result then init(result) else load() end
+    end
 
-    AddEventHandler('onClientResourceStop', function(resource)
-        if decision and resource == decision.resource then
-            lib.Ready = false
-            load()
-        end
-    end)
+    local isFirstStopEvent = newStopPairing()
+
+    local function frameworkStopping(eventName, resource)
+        if not decision or resource ~= decision.resource or not isFirstStopEvent(eventName) then return end
+        restarting = true
+        lib.Ready = false
+        SetTimeout(0, function() restarting = false end)
+        load()
+    end
+
+    AddEventHandler('onClientResourceStart', frameworkStarted)
+    AddEventHandler('onResourceStart', frameworkStarted)
+    AddEventHandler('onClientResourceStop', function(resource) frameworkStopping('onClientResourceStop', resource) end)
+    AddEventHandler('onResourceStop', function(resource) frameworkStopping('onResourceStop', resource) end)
 end
 
 -- Calls onFound(framework, name, variant) whenever the framework (re)becomes available: synchronously when it is
