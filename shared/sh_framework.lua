@@ -190,9 +190,16 @@ function ForceLibBridge.GuardModule(module, moduleName, waitFor, waitMs, passThr
             module[key] = function(...)
                 if not lib.Ready and not ForceLibBridge.TryInit() and not (waitFor and waitFor[key] and ForceLibBridge.AwaitReady(waitMs)) then
                     local name = moduleName .. ':' .. key
-                    if not warnedNotReady[name] then
+                    local caller = tostring(GetInvokingResource() or GetCurrentResourceName())
+                    if lib.Framework then
+                        -- loaded before: the framework is restarting right now
+                        if not warnedNotReady['restart:' .. name] then
+                            warnedNotReady['restart:' .. name] = true
+                            printWarning(("%s() was called by %s while the framework was restarting and returned nil."):format(name, caller))
+                        end
+                    elseif not warnedNotReady[name] then
                         warnedNotReady[name] = true
-                        printWarning(("%s() was called by %s before force_lib had loaded the framework and returned nil. Ensure your framework before force_lib in server.cfg."):format(name, tostring(GetInvokingResource() or GetCurrentResourceName())))
+                        printWarning(("%s() was called by %s before force_lib had loaded the framework and returned nil. Ensure your framework before force_lib in server.cfg."):format(name, caller))
                     end
                     return nil
                 end
@@ -274,7 +281,15 @@ local function detectServer(onFound)
 
     ForceLibBridge.TryInit = function()
         if lib.Ready then return true end
-        if restarting then return false end
+        if restarting then
+            -- Event handlers of other resources can run before ours. "starting" means the new instance is loaded (the
+            -- dying one still reads "started"), so its core object is safe to use.
+            if current and GetResourceState(current.resource) == 'starting' then
+                local fresh = detectOnce(current.resource, current.resource)
+                if fresh then restarting = false found(fresh) end
+            end
+            return lib.Ready == true
+        end
         local fresh = detectOnce(current and current.resource)
         if fresh then found(fresh) end
         return lib.Ready == true
@@ -382,7 +397,13 @@ local function detectClient(onFound)
 
     ForceLibBridge.TryInit = function()
         if lib.Ready then return true end
-        if restarting then return false end
+        if restarting then
+            if decision and GetResourceState(decision.resource) == 'starting' then -- see detectServer
+                local result = detectOnce(decision.resource, decision.resource)
+                if result then restarting = false init(result) end
+            end
+            return lib.Ready == true
+        end
         if not decision then
             apply(GlobalState[STATE_KEY])
         elseif isStarted(decision.resource) then
