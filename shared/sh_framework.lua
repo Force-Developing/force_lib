@@ -21,6 +21,11 @@ local function printWarning(message)
 end
 ForceLibBridge.PrintWarning = printWarning
 
+-- Cancels a SetTimeout timer once it is no longer needed (e.g. the callback it guards was answered).
+function ForceLibBridge.ClearTimer(timer)
+    if timer and ClearTimeout then ClearTimeout(timer) end
+end
+
 local function isStarted(resource)
     return type(resource) == 'string' and GetResourceState(resource) == 'started'
 end

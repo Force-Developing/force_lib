@@ -115,6 +115,7 @@ RegisterNetEvent('force_lib:Server:TriggerClientCallback', function(name, reques
     local entry = pending[requestId]
     if entry and entry.name == name then
         pending[requestId] = nil
+        ForceLibBridge.ClearTimer(entry.timer)
         lib.CallClientCallback(entry.cb, ...)
     end
 end)
@@ -127,6 +128,7 @@ RegisterNetEvent('force_lib:Server:ClientCallbackMissing', function(name, reques
     local entry = pending[requestId]
     if entry and entry.name == name then
         pending[requestId] = nil
+        ForceLibBridge.ClearTimer(entry.timer)
         lib.ClientCallbackWarning(src, name, 'not registered on the client')
     end
 end)
@@ -137,6 +139,9 @@ AddEventHandler('playerDropped', function()
     local pending = lib.ClientCallbacks[src]
     lib.ClientCallbacks[src] = nil
     local count = 0
-    for _ in pairs(pending or {}) do count = count + 1 end
+    for _, entry in pairs(pending or {}) do
+        count = count + 1
+        ForceLibBridge.ClearTimer(entry.timer)
+    end
     if count > 0 then lib.ClientCallbackWarning(src, ('%d pending'):format(count), 'the player left') end
 end)

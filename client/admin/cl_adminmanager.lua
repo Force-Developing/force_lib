@@ -12,8 +12,7 @@ function lib.Admin:CheckAdmin(id)
     if not inFlight then
         local p = promise.new()
         inFlight = p
-        -- resolving a settled promise is a no-op
-        SetTimeout(ADMIN_CHECK_TIMEOUT_MS, function() p:resolve(false) end)
+        -- TriggerCallbackTimeout answers within ADMIN_CHECK_TIMEOUT_MS, so no extra timer is needed
         CreateThread(function()
             local ok, res = pcall(lib.TriggerCallbackTimeout, 'force_lib:admin:CheckAdmin', ADMIN_CHECK_TIMEOUT_MS, id)
             p:resolve(ok and res == true)

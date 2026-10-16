@@ -70,9 +70,11 @@ local function isAdmin(src, cb)
     pending[src] = { cb }
 
     local resolved = false
+    local timer
     local function done(value, cacheable)
         if resolved then return end
         resolved = true
+        ForceLibBridge.ClearTimer(timer)
         value = value == true
         if cacheable then
             cache[src] = { value = value, expires = GetGameTimer() + CACHE_TTL_MS }
@@ -102,7 +104,7 @@ local function isAdmin(src, cb)
 
     if not hasRoles then return done(false, true) end
 
-    SetTimeout(HTTP_TIMEOUT_MS, function() done(false, false) end)
+    timer = SetTimeout(HTTP_TIMEOUT_MS, function() done(false, false) end)
     checkDiscordRoles(src, roleSet, done)
 end
 

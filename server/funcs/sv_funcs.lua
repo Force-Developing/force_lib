@@ -113,9 +113,10 @@ function lib.Funcs:Init()
         end
         lib.ClientCallbacks[source] = lib.ClientCallbacks[source] or {}
         local requestId = lib.NextClientCallbackId()
-        lib.ClientCallbacks[source][requestId] = { name = name, cb = cb }
+        local entry = { name = name, cb = cb }
+        lib.ClientCallbacks[source][requestId] = entry
 
-        SetTimeout(lib.ClientCallbackTimeoutMs, function()
+        entry.timer = SetTimeout(lib.ClientCallbackTimeoutMs, function()
             local pending = lib.ClientCallbacks[source]
             if not pending or not pending[requestId] then return end
             pending[requestId] = nil

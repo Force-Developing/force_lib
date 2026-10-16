@@ -9,7 +9,11 @@ local CALLBACK_TIMEOUT_MS = math.max(1000, GetConvarInt('force_lib:callbackTimeo
 -- Returns value, timedOut.
 function lib.TriggerCallbackTimeout(name, timeoutMs, ...)
     local p = promise.new()
-    local function onResult(res) p:resolve({ res }) end
+    local timer
+    local function onResult(res)
+        ForceLibBridge.ClearTimer(timer)
+        p:resolve({ res })
+    end
 
     if lib.FrameworkName == "QBCore" then
         lib.Framework.Functions.TriggerCallback(name, onResult, ...)
@@ -20,7 +24,7 @@ function lib.TriggerCallbackTimeout(name, timeoutMs, ...)
         return nil, false
     end
 
-    SetTimeout(timeoutMs, function() p:resolve(false) end) -- resolving a settled promise is a no-op
+    timer = SetTimeout(timeoutMs, function() p:resolve(false) end) -- resolving a settled promise is a no-op
     local result = Citizen.Await(p)
     if result == false then
         ForceLibBridge.PrintError(("Server callback '%s' did not answer within %d ms (not registered on the server, or it never calls cb)."):format(tostring(name), timeoutMs))
