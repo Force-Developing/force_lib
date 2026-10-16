@@ -35,6 +35,10 @@ local function isAllowedClientWebhook(url)
     return false
 end
 
+if Config.Discord.Logs.AllowClientLogs ~= false and GetConvar('force_lib:webhookAllowlist', ''):match('^%s*$') then
+    print("^3[force_lib] WARNING: client Discord logs are on (Config.Discord.Logs.AllowClientLogs) and force_lib:webhookAllowlist is empty, so any player can make this server post to any Discord webhook (5 per minute, tagged [Client]). List the webhooks your resources log to with set force_lib:webhookAllowlist \"url1,url2\", or set AllowClientLogs = false.^0")
+end
+
 local function isRateLimited(src)
     local now = GetGameTimer()
     local history = clientLogHistory[src] or {}
