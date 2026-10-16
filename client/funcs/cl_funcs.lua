@@ -660,7 +660,8 @@ function lib.Funcs:Init()
             windowsBroken = windowsBroken,
             tyreBurst = tyreBurst,
             tyresCanBurst = GetVehicleTyresCanBurst(vehicle),
-            plate = lib.Math:Trim(GetVehicleNumberPlateText(vehicle)),
+            -- trimmed here: Math:Trim only accepts numbers, so it turned every plate with letters into nil
+            plate = (tostring(GetVehicleNumberPlateText(vehicle) or ''):gsub('^%s*(.-)%s*$', '%1')),
             plateIndex = GetVehicleNumberPlateTextIndex(vehicle),
     
             bodyHealth = lib.Math:Round(GetVehicleBodyHealth(vehicle), 1),
