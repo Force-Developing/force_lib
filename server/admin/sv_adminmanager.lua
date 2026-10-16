@@ -1,4 +1,5 @@
 local CACHE_TTL_MS = 60000         -- how long an admin result is reused (avoids Discord API rate limits)
+local RETRY_TTL_MS = 10000         -- a failed lookup (429, 5xx, timeout) answers false this long before asking Discord again
 local HTTP_TIMEOUT_MS = 10000      -- give up on Discord after this long
 
 local cache = {}   -- [src] = { value = bool, expires = ms }
@@ -76,9 +77,8 @@ local function isAdmin(src, cb)
         resolved = true
         ForceLibBridge.ClearTimer(timer)
         value = value == true
-        if cacheable then
-            cache[src] = { value = value, expires = GetGameTimer() + CACHE_TTL_MS }
-        end
+        -- Non-definitive failures are cached briefly too, so repeated checks can't keep the bot token rate limited.
+        cache[src] = { value = value, expires = GetGameTimer() + (cacheable and CACHE_TTL_MS or RETRY_TTL_MS) }
         local callbacks = pending[src] or {}
         pending[src] = nil
         for _, callback in ipairs(callbacks) do callback(value) end
